@@ -103,9 +103,9 @@ toc-title: "Зміст"
 сервері. Неавторизований відвідувач може виконати лише два прецеденти — реєстрацію
 та вхід; решта функціональності доступна тільки після успішної автентифікації.
 Окремої ролі адміністратора немає, бо кожен користувач бачить винятково власний
-простір і не може впливати на чужі дані. База даних і об'єктне сховище — внутрішні
-компоненти системи, а не зовнішні актори: вони не мають власних цілей
-у системі: до них звертаються лише серверні модулі.
+простір і не може впливати на чужі дані. База даних і об'єктне сховище є
+внутрішніми компонентами системи, а не зовнішніми акторами. Вони не мають власних
+цілей у системі: до них звертаються лише серверні модулі.
 
 ## Функціональні вимоги
 
@@ -235,7 +235,7 @@ shelf/
 | GET | `workspace/files` | — | масив `FileEntryDto` |
 | POST | `workspace/files` | multipart `file` | `FileEntryDto`; 201 — новий, 200 — оновлено |
 | GET | `workspace/files/:id` | — | `FileEntryDto` |
-| GET | `workspace/files/:id/content` | — | байти, `Content-Type` |
+| GET | `workspace/files/:id/content` | — | байти, `Content-Type`, `Content-Disposition` |
 | DELETE | `workspace/files/:id` | — | 204 |
 
 Коди помилок: 400 — не пройдено валідацію, 401 — немає або протух JWT, 404 — файл
@@ -248,15 +248,19 @@ shelf/
 Спільні пакети `packages/` містять два компоненти: `@shelf/ui` з презентаційними
 React-компонентами «FileTableView», «SortHeaderControl», «TypeFilterControl»,
 «PreviewDialog», «SyncPanel» і «ConflictDialog» та `@shelf/shared` з
-«FileListOperations», модулем перегляду, «SyncEngine» і «FileApiClient»; стрілка
-«import» між ними показує, що вся логіка списку й синхронізації зосереджена в
-одному місці. Десктопний клієнт складається з компонентів «Main process»
-(«NodeLocalFolder», «FolderWatcher», «JsonSnapshotStore», «DragOutHandler»),
-«Preload bridge (IPC)» і «Renderer (React screens)», з'єднаних лінією
+«FileListOperations», модулем перегляду, «SyncEngine», «SnapshotStore» і
+«FileApiClient»; стрілка «import» між ними показує, що вся логіка списку й
+синхронізації зосереджена в одному місці. Десктопний клієнт складається з
+компонентів «Main process» («NodeLocalFolder», «FolderWatcher», «JsonSnapshotStore»,
+«DragOutHandler»), «Preload bridge (IPC)» і «Renderer (React screens,
+FileListController)», з'єднаних лінією
 «IPC (contextBridge)»; від main-процесу відходить зв'язок «Node fs / chokidar» до
 артефакту «Bound local folder + snapshot.json». Веб-клієнт має компоненти
-«Pages (/login, /register, /workspace)» і «BrowserLocalFolder,
-IndexedDbSnapshotStore». Обидва клієнти імпортують спільні пакети і споживають
+«Pages (/login, /register, /workspace) + FileListController» і «BrowserLocalFolder,
+IndexedDbSnapshotStore»: керувальний клас «FileListController» власного компонента
+не має, а живе в рендерері десктопа і на сторінках веб-клієнта, тоді як інтерфейс
+сховища знімка «SnapshotStore» оголошено в `@shelf/shared` і реалізовано в обох
+клієнтах. Обидва клієнти імпортують спільні пакети і споживають
 єдиний надаваний інтерфейс — кульку «REST API, /api/auth, /api/workspace,
 HTTPS / JSON». Сервер містить модулі «AuthModule», «UsersModule»,
 «WorkspaceModule», «FilesModule», «StorageModule» і «PrismaModule»; «StorageModule»
@@ -415,7 +419,7 @@ or REMOTE for each conflict (ConflictDialog)». Далі цикл [items left?] 
 
 ## Рис. 7. Діаграма послідовності: синхронізація
 
-![Діаграма послідовності: синхронізація](../uml/img/05-sequence-sync){width=15cm}
+![Діаграма послідовності: синхронізація](../uml/img/05-sequence-sync){width=16cm}
 
 **Пояснення.** Той самий сценарій показано як обмін повідомленнями між сімома
 лініями життя: «User», «SyncPanel», «ConflictDialog», «SyncEngine», «LocalFolder»,
