@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+.next/
+.env
+.env.*
+!.env.example
+.DS_Store
+# local diagram generator (not part of the deliverable)
+tools/uml-gen/
