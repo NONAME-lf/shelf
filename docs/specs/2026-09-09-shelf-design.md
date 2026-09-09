@@ -257,7 +257,7 @@ DTO: `RegisterDto {email, password, displayName}`, `LoginDto {email, password}`,
 `FileEntryDto {id, name, extension, size, checksum, createdAt, modifiedAt, uploadedBy, editedBy}`
 (`uploadedBy` / `editedBy` — `displayName`).
 
-REST API (префікс `/api`; усі маршрути, крім `auth/*`, вимагають `Authorization: Bearer <jwt>`):
+REST API (префікс `/api`; усі маршрути, крім `auth/register` і `auth/login`, вимагають `Authorization: Bearer <jwt>`):
 
 | Метод | Шлях | Тіло / параметри | Відповідь |
 |---|---|---|---|
@@ -307,7 +307,7 @@ shelf/
 | `preview.ts` | `previewKindOf(name): PreviewKind`, `FilePreview`, `TextPreview`, `ImagePreview`, `createPreview` |
 | `fileApiClient.ts` | `FileApiClient`: `register`, `login`, `me`, `listFiles`, `upload`, `download`, `remove` |
 | `sync/localFolder.ts` | інтерфейс `LocalFolder` (§3) |
-| `sync/snapshot.ts` | `SyncSnapshot`, `SnapshotEntry`, інтерфейс `SnapshotStore { load(), save() }` |
+| `sync/snapshot.ts` | `SyncSnapshot`, `SnapshotEntry`, інтерфейс `SnapshotStore { load(), save() }`. На діаграмі послідовності 05 лінія життя `SnapshotStore` позначає знімок разом з його сховищем: `load()` і `save()` належать сховищу, `put(SnapshotEntry)` — знімку. |
 | `sync/syncPlanner.ts` | `computeStatus(local?, remote?, snapshotEntry?): SyncStatus`, `buildItems(...)`: чисті функції |
 | `sync/syncEngine.ts` | `SyncEngine` (§3), незалежний від платформи: приймає `LocalFolder`, `SnapshotStore`, `FileApiClient` |
 | `limits.ts` | `MAX_UPLOAD_MB = 50`, `splitBySize` |
@@ -375,7 +375,7 @@ Jest у `apps/api`: `AuthService`, `FilesService` (оновлення версі
 | 01 | `01-use-case` | прецедентів | UC1–UC15 каскадом, кольори груп |
 | 02 | `02-class-domain` | класів | доменна модель §3 |
 | 03 | `03-class-vopc-sort-filter` | класів (VOPC) | UC5 + UC6, §4 |
-| 04 | `04-activity-sync` | активності | UC14 з доріжками «Desktop client» / «Server (REST API)» |
+| 04 | `04-activity-sync` | активності | UC14 з доріжками «User» / «Client (SyncEngine)» / «Server (REST API)» |
 | 05 | `05-sequence-sync` | послідовності | UC14: `SyncPanel` → `SyncEngine` → `LocalFolder`, `SnapshotStore`, `FileApiClient`; `alt` за статусами, `ConflictDialog` |
 | 06 | `06-sequence-preview` | послідовності | UC8: клік → `FileListController` → `FileApiClient.download` → `createPreview` → `TextPreview` / `ImagePreview` → `PreviewDialog` |
 | 07 | `07-communication-sort-filter` | комунікації | UC5 + UC6, повідомлення §4 |
