@@ -3,6 +3,7 @@ import { dialog, type BrowserWindow, type NativeImage, type WebContents } from '
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { TransferFile } from '../shared/ipc';
+import { explainFsError } from './fsErrors';
 
 const keyOf = (file: TransferFile) => `${file.id}@${file.modifiedAt}`;
 
@@ -18,7 +19,12 @@ export class FileTransfers {
   async saveAs(window: BrowserWindow, file: TransferFile): Promise<boolean> {
     const { canceled, filePath } = await dialog.showSaveDialog(window, { title: 'Зберегти файл', defaultPath: file.name });
     if (canceled || !filePath) return false;
-    await writeFile(filePath, await this.bytes(file));
+    const bytes = await this.bytes(file);
+    try {
+      await writeFile(filePath, bytes);
+    } catch (error) {
+      throw explainFsError(error, filePath, 'file');
+    }
     return true;
   }
 

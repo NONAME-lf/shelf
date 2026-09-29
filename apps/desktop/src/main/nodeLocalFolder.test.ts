@@ -1,5 +1,5 @@
 import { sha256Hex } from '@shelf/shared';
-import { mkdir, mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -55,5 +55,17 @@ describe('NodeLocalFolder', () => {
     await mkdir(join(dir, 'taken.txt'));
     await expect(new NodeLocalFolder(dir).write('taken.txt', new Uint8Array([1]), new Date())).rejects.toThrow();
     expect(await readdir(dir)).toEqual(['taken.txt']);
+  });
+
+  it('explains in Ukrainian that the bound folder is gone', async () => {
+    const gone = join(dir, 'Shelf');
+    await expect(new NodeLocalFolder(gone).listFiles()).rejects.toThrow(`Папку «${gone}» не знайдено — виберіть її знову`);
+  });
+
+  it.skipIf(process.getuid?.() === 0)('explains in Ukrainian that a file cannot be read', async () => {
+    await writeFile(join(dir, 'locked.txt'), 'x');
+    await chmod(join(dir, 'locked.txt'), 0o000);
+    await expect(new NodeLocalFolder(dir).read('locked.txt')).rejects.toThrow(`Немає доступу до «${join(dir, 'locked.txt')}»`);
+    await expect(new NodeLocalFolder(dir).checksum('locked.txt')).rejects.toThrow(`Немає доступу до «${join(dir, 'locked.txt')}»`);
   });
 });

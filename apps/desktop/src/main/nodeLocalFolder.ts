@@ -3,13 +3,16 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readdir, readFile, rename, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { explainFsError } from './fsErrors';
 
 /** LocalFolder over Node fs. A downloaded file gets the server's modification time. */
 export class NodeLocalFolder implements LocalFolder {
   constructor(readonly path: string) {}
 
   async listFiles(): Promise<LocalFile[]> {
-    const entries = await readdir(this.path, { withFileTypes: true });
+    const entries = await readdir(this.path, { withFileTypes: true }).catch((error: unknown) => {
+      throw explainFsError(error, this.path, 'folder');
+    });
     const files: LocalFile[] = [];
     for (const entry of entries) {
       if (entry.isFile() && isSyncableName(entry.name)) files.push(await this.describe(entry.name));
@@ -18,7 +21,12 @@ export class NodeLocalFolder implements LocalFolder {
   }
 
   async read(name: string): Promise<Uint8Array> {
-    return new Uint8Array(await readFile(this.resolve(name)));
+    const file = this.resolve(name);
+    try {
+      return new Uint8Array(await readFile(file));
+    } catch (error) {
+      throw explainFsError(error, file, 'file');
+    }
   }
 
   async write(name: string, bytes: Uint8Array, modifiedAt: Date): Promise<LocalFile> {
@@ -31,7 +39,8 @@ export class NodeLocalFolder implements LocalFolder {
       await rename(temp, target);
     } catch (error) {
       await rm(temp, { force: true });
-      throw error;
+      // the temporary file is created in the folder: a missing or read-only folder is what failed
+      throw explainFsError(error, this.path, 'folder');
     }
     return this.describe(name);
   }
@@ -41,7 +50,7 @@ export class NodeLocalFolder implements LocalFolder {
     return new Promise((resolve, reject) => {
       const hash = createHash('sha256');
       createReadStream(file)
-        .on('error', reject)
+        .on('error', (error) => reject(explainFsError(error, file, 'file')))
         .on('data', (chunk) => hash.update(chunk))
         .on('end', () => resolve(hash.digest('hex')));
     });
@@ -49,7 +58,9 @@ export class NodeLocalFolder implements LocalFolder {
 
   private async describe(name: string): Promise<LocalFile> {
     const path = this.resolve(name);
-    const info = await stat(path);
+    const info = await stat(path).catch((error: unknown) => {
+      throw explainFsError(error, path, 'file');
+    });
     return { name, path, size: info.size, modifiedAt: Math.round(info.mtimeMs) };
   }
 
