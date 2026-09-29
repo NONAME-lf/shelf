@@ -20,7 +20,7 @@ const bridge: ShelfBridge = {
   onAutoSync: (listener) => subscribe(IPC.syncAuto, listener),
   saveAs: (file) => ipcRenderer.invoke(IPC.fileSaveAs, file),
   prepareDrag: (file) => ipcRenderer.invoke(IPC.filePrepareDrag, file),
-  startDrag: (file) => ipcRenderer.send(IPC.fileStartDrag, file),
+  startDrag: (file) => ipcRenderer.invoke(IPC.fileStartDrag, file),
 };
 
 contextBridge.exposeInMainWorld('shelf', bridge);

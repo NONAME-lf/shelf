@@ -27,7 +27,7 @@ export function useDesktopSync({ settings, onSettings, onSynced }: Options) {
       const { report } = event;
       if (report) {
         // a follow-up run that changed nothing must not replace the report the user is looking at
-        if (report.uploaded + report.downloaded > 0 || report.errors.length > 0) setLastReport(report);
+        if (report.uploaded + report.downloaded > 0 || report.errors.length > 0 || report.conflicts > 0) setLastReport(report);
         setLastSyncedAt(event.syncedAt);
         void onSynced();
       }

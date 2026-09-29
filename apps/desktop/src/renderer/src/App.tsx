@@ -5,6 +5,8 @@ import { LoginScreen } from './screens/LoginScreen';
 import { WorkspaceScreen } from './screens/WorkspaceScreen';
 import { clearSession, loadSession, makeApi, saveSession, type StoredSession } from './session';
 
+const FALLBACK_SETTINGS: DesktopSettings = { serverUrl: 'http://localhost:4000', folderPath: null, watch: false };
+
 export function App() {
   const [settings, setSettings] = useState<DesktopSettings | null>(null);
   const [session, setSession] = useState<StoredSession | null>(null);
@@ -12,19 +14,25 @@ export function App() {
 
   useEffect(() => {
     void (async () => {
-      setSettings(await window.shelf.getSettings());
+      try {
+        setSettings(await window.shelf.getSettings());
+      } catch {
+        setSettings(FALLBACK_SETTINGS);
+      }
       const stored = loadSession();
       if (stored) {
         try {
-          await makeApi(stored.serverUrl, stored.token).me();
+          try {
+            await makeApi(stored.serverUrl, stored.token).me();
+          } catch (error) {
+            // an unreachable server is not a reason to log out: only a rejected token is
+            if (error instanceof ApiError && error.status === 401) throw error;
+          }
           await window.shelf.setSession({ serverUrl: stored.serverUrl, token: stored.token });
           setSession(stored);
         } catch (error) {
           if (error instanceof ApiError && error.status === 401) clearSession();
-          else {
-            await window.shelf.setSession({ serverUrl: stored.serverUrl, token: stored.token });
-            setSession(stored);
-          }
+          // any other failure (IPC included) leaves the login screen
         }
       }
       setReady(true);
@@ -38,8 +46,8 @@ export function App() {
   }, []);
 
   const loggedIn = useCallback(async (next: StoredSession) => {
-    saveSession(next);
     await window.shelf.setSession({ serverUrl: next.serverUrl, token: next.token });
+    saveSession(next);
     setSession(next);
   }, []);
 

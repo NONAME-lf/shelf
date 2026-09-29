@@ -50,14 +50,50 @@ try {
   console.log('ok  preview .kt / .jpg / unsupported');
 
   // An internal drag (no OS files) must not open the upload overlay.
+  const dragEnter = (withFiles) =>
+    page.evaluate((withFiles) => {
+      const zone = document.querySelector('[data-testid="dropzone"]');
+      const data = new DataTransfer();
+      if (withFiles) data.items.add(new File(['x'], 'outside.txt'));
+      else data.setData('text/plain', 'row');
+      zone.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: data }));
+    }, withFiles);
+  const dropzoneActive = () => page.getByTestId('dropzone').getAttribute('data-active');
+  await dragEnter(false);
+  assert.equal(await dropzoneActive(), 'false');
+  console.log('ok  internal drag ignored by the drop zone');
+
+  // Positive control: a drag with OS files does open it, and leaving closes it again.
+  await dragEnter(true);
+  assert.equal(await dropzoneActive(), 'true');
   await page.evaluate(() => {
     const zone = document.querySelector('[data-testid="dropzone"]');
     const data = new DataTransfer();
-    data.setData('text/plain', 'row');
-    zone.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: data }));
+    data.items.add(new File(['x'], 'outside.txt'));
+    zone.dispatchEvent(new DragEvent('dragleave', { bubbles: true, cancelable: true, dataTransfer: data }));
   });
-  assert.equal(await page.getByTestId('dropzone').getAttribute('data-active'), 'false');
-  console.log('ok  internal drag ignored by the drop zone');
+  assert.equal(await dropzoneActive(), 'false');
+  console.log('ok  drag with OS files activates the drop zone and leaving deactivates it');
+
+  // Dragging a row out starts a native drag of a real file; while it runs the drop zone must stay closed.
+  await page.evaluate(() => {
+    const row = document.querySelector('[data-testid="file-row"][data-name="Main.kt"]');
+    row.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: new DataTransfer() }));
+  });
+  await dragEnter(true);
+  assert.equal(await dropzoneActive(), 'false');
+  await page.mouse.move(700, 500);
+  await page.mouse.move(720, 520);
+  await dragEnter(true);
+  assert.equal(await dropzoneActive(), 'true');
+  await page.evaluate(() => {
+    const zone = document.querySelector('[data-testid="dropzone"]');
+    const data = new DataTransfer();
+    data.items.add(new File(['x'], 'outside.txt'));
+    zone.dispatchEvent(new DragEvent('dragleave', { bubbles: true, cancelable: true, dataTransfer: data }));
+  });
+  assert.equal(await dropzoneActive(), 'false');
+  console.log('ok  drop zone stays closed during a row drag-out and works again afterwards');
 
   // Dropping a 51 MB file with a small one: the big one is skipped, the small one uploaded.
   await page.evaluate(() => {
@@ -71,7 +107,8 @@ try {
   await page.getByTestId('notice').waitFor();
   const notice = await page.getByTestId('notice').innerText();
   assert.match(notice, /Завантажено файлів: 1/);
-  assert.match(notice, /huge\.bin/);
+  assert.match(notice, /Більші за 50 МБ і пропущені: huge\.bin/);
+  assert.doesNotMatch(notice, /Помилки/);
   await page.locator('[data-testid="file-row"][data-name="dropped.kt"]').waitFor();
   console.log('ok  drop uploads small files and skips files above 50 MB');
 

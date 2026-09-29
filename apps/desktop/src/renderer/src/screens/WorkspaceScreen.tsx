@@ -17,7 +17,7 @@ import {
   type UploadOutcome,
 } from '@shelf/ui';
 import { RefreshCw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { DesktopSettings } from '../../../shared/ipc';
 import { cleanIpcError } from '../ipcError';
 import { makeApi, type StoredSession } from '../session';
@@ -42,13 +42,35 @@ export function WorkspaceScreen({ session, settings, onSettings, onLogout }: Pro
   const api = useMemo(() => makeApi(session.serverUrl, session.token, () => void onLogout()), [session, onLogout]);
   const list = useFileListController(api);
   const sync = useDesktopSync({ settings, onSettings, onSynced: list.loadFiles });
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
+  // True from the moment a row is dragged out of the window until the native drag is over. Chromium
+  // then sees a drag that carries Files, which must not open the upload overlay.
+  const [outgoingDrag, setOutgoingDrag] = useState(false);
+
+  useEffect(() => {
+    if (!outgoingDrag) return;
+    const clear = () => setOutgoingDrag(false);
+    // the native drag suppresses pointer events; before it starts the button is still pressed
+    const onMove = (event: PointerEvent) => {
+      if (event.buttons === 0) clear();
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerdown', clear);
+    window.addEventListener('blur', clear);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerdown', clear);
+      window.removeEventListener('blur', clear);
+    };
+  }, [outgoingDrag]);
 
   const upload = async (files: File[]) => {
     try {
-      setNotice(describeUpload(await list.upload(files)));
+      const outcome = await list.upload(files);
+      const text = describeUpload(outcome);
+      setNotice(text ? { text, tone: outcome.errors.length > 0 ? 'error' : 'info' } : null);
     } catch (caught) {
-      setNotice(messageOf(caught));
+      setNotice({ text: messageOf(caught), tone: 'error' });
     }
   };
 
@@ -71,7 +93,7 @@ export function WorkspaceScreen({ session, settings, onSettings, onLogout }: Pro
     try {
       await list.remove(file);
     } catch (caught) {
-      setNotice(messageOf(caught));
+      setNotice({ text: messageOf(caught), tone: 'error' });
     }
   };
 
@@ -115,8 +137,12 @@ export function WorkspaceScreen({ session, settings, onSettings, onLogout }: Pro
           </>
         }
       >
-        <UploadDropzone onFiles={(files) => void upload(files)}>
-          {notice ? <Banner onClose={() => setNotice(null)}>{notice}</Banner> : null}
+        <UploadDropzone onFiles={(files) => void upload(files)} disabled={outgoingDrag}>
+          {notice ? (
+            <Banner tone={notice.tone} onClose={() => setNotice(null)}>
+              {notice.text}
+            </Banner>
+          ) : null}
           {list.error ? (
             <Banner tone="error" onClose={() => list.setError(null)}>
               {list.error}
@@ -133,7 +159,8 @@ export function WorkspaceScreen({ session, settings, onSettings, onLogout }: Pro
             onRowPointerDown={(file) => void window.shelf.prepareDrag(file).catch(() => undefined)}
             onRowDragStart={(file, event) => {
               event.preventDefault();
-              window.shelf.startDrag(file);
+              setOutgoingDrag(true);
+              window.shelf.startDrag(file).catch((caught) => setNotice({ text: cleanIpcError(caught), tone: 'error' }));
             }}
             emptyText={
               list.loading

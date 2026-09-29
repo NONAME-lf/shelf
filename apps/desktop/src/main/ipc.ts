@@ -31,9 +31,7 @@ export function registerIpc(window: BrowserWindow, deps: IpcDeps): () => void {
   ipcMain.handle(IPC.filePrepareDrag, async (_event, file: TransferFile) => {
     await transfers.prepareDrag(file);
   });
-  ipcMain.on(IPC.fileStartDrag, (event, file: TransferFile) => {
-    transfers.startDrag(event.sender, file, deps.dragIcon).catch(() => undefined);
-  });
+  ipcMain.handle(IPC.fileStartDrag, (event, file: TransferFile) => transfers.startDrag(event.sender, file, deps.dragIcon));
 
   const handled = [
     IPC.settingsGet,
@@ -46,9 +44,9 @@ export function registerIpc(window: BrowserWindow, deps: IpcDeps): () => void {
     IPC.syncSetWatch,
     IPC.fileSaveAs,
     IPC.filePrepareDrag,
+    IPC.fileStartDrag,
   ];
   return () => {
     for (const channel of handled) ipcMain.removeHandler(channel);
-    ipcMain.removeAllListeners(IPC.fileStartDrag);
   };
 }

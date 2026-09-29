@@ -36,5 +36,5 @@ export interface ShelfBridge {
   onAutoSync(listener: (event: AutoSyncEvent) => void): () => void;
   saveAs(file: TransferFile): Promise<boolean>;
   prepareDrag(file: TransferFile): Promise<void>;
-  startDrag(file: TransferFile): void;
+  startDrag(file: TransferFile): Promise<void>;
 }
