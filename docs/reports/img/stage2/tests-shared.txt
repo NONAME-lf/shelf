@@ -1,0 +1,149 @@
+
+ RUN  v3.2.7 /Users/user/uni/4year/it/googleDrive/shelf/packages/shared
+
+ ✓ src/format.test.ts > formatSize > 0 → 0 Б 1ms
+ ✓ src/format.test.ts > formatSize > 1023 → 1023 Б 0ms
+ ✓ src/format.test.ts > formatSize > 1536 → 1,5 КБ 0ms
+ ✓ src/format.test.ts > formatSize > 10240 → 10 КБ 0ms
+ ✓ src/format.test.ts > formatSize > 5242880 → 5 МБ 0ms
+ ✓ src/format.test.ts > formatSize > 52428800 → 50 МБ 0ms
+ ✓ src/format.test.ts > formatSize > -1 → — 0ms
+ ✓ src/format.test.ts > formatDateTime (tests run with TZ=UTC) > formats an ISO string as dd.MM.yyyy HH:mm 0ms
+ ✓ src/format.test.ts > formatDateTime (tests run with TZ=UTC) > accepts epoch milliseconds 0ms
+ ✓ src/format.test.ts > formatDateTime (tests run with TZ=UTC) > returns a dash for an invalid date 0ms
+ ✓ src/hash.test.ts > sha256Hex > hashes bytes to lowercase hex 2ms
+ ✓ src/hash.test.ts > sha256Hex > hashes an empty input 0ms
+ ✓ src/limits.test.ts > upload limit > is 50 MB 1ms
+ ✓ src/limits.test.ts > upload limit > accepts files up to and including the limit and rejects larger ones 0ms
+ ✓ src/columns.test.ts > columns > shows every column by default, name first 1ms
+ ✓ src/columns.test.ts > columns > hides and shows a column 0ms
+ ✓ src/columns.test.ts > columns > never hides the name column 0ms
+ ✓ src/sync/fileNames.test.ts > file names > accepts Main.kt 1ms
+ ✓ src/sync/fileNames.test.ts > file names > accepts Звіт 2026.txt 0ms
+ ✓ src/sync/fileNames.test.ts > file names > accepts .gitignore 0ms
+ ✓ src/sync/fileNames.test.ts > file names > accepts aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 0ms
+ ✓ src/sync/fileNames.test.ts > file names > rejects "" 0ms
+ ✓ src/sync/fileNames.test.ts > file names > rejects "   " 0ms
+ ✓ src/sync/fileNames.test.ts > file names > rejects "." 0ms
+ ✓ src/sync/fileNames.test.ts > file names > rejects ".." 0ms
+ ✓ src/sync/fileNames.test.ts > file names > rejects "a/b.txt" 0ms
+ ✓ src/sync/fileNames.test.ts > file names > rejects "a\\b.txt" 0ms
+ ✓ src/sync/fileNames.test.ts > file names > rejects "bell\u0007.txt" 0ms
+ ✓ src/sync/fileNames.test.ts > file names > rejects "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" 0ms
+ ✓ src/sync/fileNames.test.ts > file names > does not synchronize hidden files 0ms
+ ✓ src/sync/fileNames.test.ts > file names > does not synchronize a file named __proto__ (it would replace the prototype of the snapshot entries) 0ms
+ ✓ src/sync/fileNames.test.ts > names that are one file on a case-insensitive file system > gives the same key to names that differ only in case or Unicode form 1ms
+ ✓ src/sync/fileNames.test.ts > names that are one file on a case-insensitive file system > finds every name whose key is shared by a different name 1ms
+ ✓ src/sync/fileNames.test.ts > names that are one file on a case-insensitive file system > does not treat the same name seen twice as a collision 0ms
+ ✓ src/fileListOperations.test.ts > extensionOf > Main.kt → "kt" 1ms
+ ✓ src/fileListOperations.test.ts > extensionOf > PHOTO.JPG → "jpg" 0ms
+ ✓ src/fileListOperations.test.ts > extensionOf > archive.tar.gz → "gz" 0ms
+ ✓ src/fileListOperations.test.ts > extensionOf > noext → "" 0ms
+ ✓ src/fileListOperations.test.ts > extensionOf > .env → "" 0ms
+ ✓ src/fileListOperations.test.ts > extensionOf > trailing. → "" 0ms
+ ✓ src/fileListOperations.test.ts > sortByName — операція варіанта: сортування за назвою > sorts ascending, ignoring letter case 0ms
+ ✓ src/fileListOperations.test.ts > sortByName — операція варіанта: сортування за назвою > sorts descending as the exact reverse 0ms
+ ✓ src/fileListOperations.test.ts > sortByName — операція варіанта: сортування за назвою > orders numbers inside names naturally 0ms
+ ✓ src/fileListOperations.test.ts > sortByName — операція варіанта: сортування за назвою > does not mutate the input 0ms
+ ✓ src/fileListOperations.test.ts > sortByName — операція варіанта: сортування за назвою > toggles the direction 0ms
+ ✓ src/fileListOperations.test.ts > filterByType — операція варіанта: фільтр «усі / лише .cpp / лише .png» > ONLY_CPP keeps only .cpp files, any letter case 0ms
+ ✓ src/fileListOperations.test.ts > filterByType — операція варіанта: фільтр «усі / лише .cpp / лише .png» > ONLY_PNG keeps only .png files 0ms
+ ✓ src/fileListOperations.test.ts > filterByType — операція варіанта: фільтр «усі / лише .cpp / лише .png» > ALL_FILES keeps everything and returns a copy 0ms
+ ✓ src/fileListOperations.test.ts > filterByType — операція варіанта: фільтр «усі / лише .cpp / лише .png» > does not match a name that only contains "cpp" 0ms
+ ✓ src/fileListOperations.test.ts > getVisibleFiles — filter on top of the sorted list > keeps the chosen order after filtering 0ms
+ ✓ src/fileListOperations.test.ts > getVisibleFiles — filter on top of the sorted list > equals filterByType(sortByName(files, direction), filter) 0ms
+ ✓ src/preview.test.ts > previewKindOf — тип варіанта: .kt як текст, .jpg як зображення > Main.kt → TEXT 1ms
+ ✓ src/preview.test.ts > previewKindOf — тип варіанта: .kt як текст, .jpg як зображення > photo.jpg → IMAGE 0ms
+ ✓ src/preview.test.ts > previewKindOf — тип варіанта: .kt як текст, .jpg як зображення > PHOTO.JPG → IMAGE 0ms
+ ✓ src/preview.test.ts > previewKindOf — тип варіанта: .kt як текст, .jpg як зображення > main.cpp → TEXT 0ms
+ ✓ src/preview.test.ts > previewKindOf — тип варіанта: .kt як текст, .jpg як зображення > notes.txt → TEXT 0ms
+ ✓ src/preview.test.ts > previewKindOf — тип варіанта: .kt як текст, .jpg як зображення > logo.png → IMAGE 0ms
+ ✓ src/preview.test.ts > previewKindOf — тип варіанта: .kt як текст, .jpg як зображення > backup.zip → NONE 0ms
+ ✓ src/preview.test.ts > previewKindOf — тип варіанта: .kt як текст, .jpg як зображення > noext → NONE 0ms
+ ✓ src/preview.test.ts > createPreview > creates a TextPreview for .kt 0ms
+ ✓ src/preview.test.ts > createPreview > creates an ImagePreview for .jpg 0ms
+ ✓ src/preview.test.ts > createPreview > returns null for types without a preview 0ms
+ ✓ src/preview.test.ts > TextPreview > renders UTF-8 text 0ms
+ ✓ src/preview.test.ts > TextPreview > shows only the first megabyte of a large file 2ms
+ ✓ src/preview.test.ts > TextPreview > can render any text extension 0ms
+ ✓ src/preview.test.ts > ImagePreview > renders an object URL for the image bytes 0ms
+ ✓ src/sync/snapshot.test.ts > getEntry > returns an entry that was put 1ms
+ ✓ src/sync/snapshot.test.ts > getEntry > does not mistake the built-in key constructor for an entry 0ms
+ ✓ src/sync/snapshot.test.ts > getEntry > does not mistake the built-in key toString for an entry 0ms
+ ✓ src/sync/snapshot.test.ts > getEntry > does not mistake the built-in key hasOwnProperty for an entry 0ms
+ ✓ src/sync/snapshot.test.ts > getEntry > does not mistake the built-in key __proto__ for an entry 0ms
+ ✓ src/fileApiClient.test.ts > normalizeBaseUrl > http://localhost:4000 → http://localhost:4000/api 1ms
+ ✓ src/fileApiClient.test.ts > normalizeBaseUrl > http://localhost:4000/ → http://localhost:4000/api 0ms
+ ✓ src/fileApiClient.test.ts > normalizeBaseUrl > http://host/api/ → http://host/api 0ms
+ ✓ src/fileApiClient.test.ts > normalizeBaseUrl >  https://shelf-api.onrender.com  → https://shelf-api.onrender.com/api 0ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > logs in with a JSON body and no Authorization header 2ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > sends the bearer token when listing files 0ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > uploads a multipart form and reports whether the entry was created 1ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > downloads file content as a Blob 1ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > deletes a file 0ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > turns an error response into ApiError with the server message 1ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > joins validation messages 1ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > calls onUnauthorized when a signed-in request gets 401 1ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > does not call onUnauthorized for a wrong password on the login form 0ms
+ ✓ src/fileApiClient.test.ts > FileApiClient > turns a network failure into ApiError(0) 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > LOCAL_ONLY when the file exists only locally (even if the snapshot knew it) 1ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > REMOTE_ONLY when the file exists only on the server 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > IN_SYNC when nothing changed since the snapshot 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > a remote time within the 2 s tolerance > REMOTE_NEWER when the remote checksum differs from the snapshot 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > a remote time within the 2 s tolerance > CONFLICT when the local file changed too 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > a remote time within the 2 s tolerance > IN_SYNC when the remote checksum is the same 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > IN_SYNC when the times differ by less than 2 seconds 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > IN_SYNC at exactly 2 seconds; a change beyond that 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > applies the same tolerance to the server time 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > LOCAL_NEWER when only the local time changed 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > LOCAL_NEWER when only the local size changed 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > REMOTE_NEWER when only the server version changed 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > CONFLICT when both sides changed since the snapshot 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > counts an unreadable time as a change 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > without a snapshot: equal checksums → IN_SYNC, different → CONFLICT 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > refuses to guess without a snapshot and without a checksum 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — таблиця статусів §5.2 > refuses an input with neither side 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — a snapshot entry of a different server file > is ignored: the checksum decides, as on a first synchronization 0ms
+ ✓ src/sync/syncPlanner.test.ts > computeStatus — a snapshot entry of a different server file > is trusted when it names the same server file, or no server file at all 0ms
+ ✓ src/sync/syncPlanner.test.ts > conflict side > by default keeps the newer version 0ms
+ ✓ src/sync/syncPlanner.test.ts > conflict side > keeps the server version when both times are equal 0ms
+ ✓ src/sync/syncPlanner.test.ts > conflict side > follows the user's choice 0ms
+ ✓ src/sync/syncPlanner.test.ts > conflict side > maps the other statuses to a direction 0ms
+ ✓ src/sync/syncPlanner.test.ts > buildItems > builds one item per name from both sides, sorted, skipping hidden files 0ms
+ ✓ src/sync/syncPlanner.test.ts > buildItems > does not mistake built-in object keys for a snapshot entry or a checksum 0ms
+ ✓ src/sync/syncPlanner.test.ts > buildItems > uses the supplied checksums when there is no snapshot entry 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > first sync uploads local-only files and downloads remote-only files 4ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > a second sync without changes transfers nothing 4ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > uploads a local edit (LOCAL_NEWER) and downloads a server edit (REMOTE_NEWER) 2ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > detects a conflict and by default keeps the newer version 1ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > applies the user's resolution of a conflict 3ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > the user's choice of LOCAL overrides the newer server version 2ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > first sync compares checksums when there is no snapshot 1ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > isolates a failed transfer 2ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > a failed download leaves the local file and its snapshot entry as they were 1ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > reports files above 50 MB instead of uploading them 1ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > ignores hidden files 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > ignores a file named __proto__ 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > compares a file named like a built-in object key by checksum on the first sync 3ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > rejects resolving a file that is not in conflict 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > works in a browser-like folder that cannot keep the server time 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > does not propagate deletions: a file deleted on the server is uploaded again 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine > reports progress for every item 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — the plan is re-checked before transfer > does not download over a local edit made after the scan 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — the plan is re-checked before transfer > does not download over a file created locally after the scan 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — the plan is re-checked before transfer > does not upload over a server edit made after the scan 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — the plan is re-checked before transfer > still transfers the files that did not change 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — names that differ only in letter case > leaves such names out of the plan and reports each of them 1ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — names that differ only in letter case > does not download two server files that would be one file locally 2ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — names that differ only in letter case > keeps the snapshot entry of a skipped name 1ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — names that differ only in letter case > does not download a name whose case variant was created locally after the scan 0ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — a snapshot entry belongs to one server file > records the server file id after an upload, a download and an in-sync check 2ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — a snapshot entry belongs to one server file > treats a different server file under a known name as a conflict, not as a newer version 3ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — failures around the run > forgets the plan when saving the snapshot fails 3ms
+ ✓ src/sync/syncEngine.test.ts > SyncEngine — failures around the run > finishes the run when the progress callback throws 0ms
+
+ Test Files  11 passed (11)
+      Tests  140 passed (140)
+   Start at  22:21:06
+   Duration  376ms (transform 338ms, setup 0ms, collect 663ms, tests 73ms, environment 1ms, prepare 691ms)
+
