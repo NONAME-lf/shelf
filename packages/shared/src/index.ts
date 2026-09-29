@@ -5,3 +5,4 @@ export * from './columns';
 export * from './limits';
 export * from './format';
 export * from './preview';
+export * from './fileApiClient';
