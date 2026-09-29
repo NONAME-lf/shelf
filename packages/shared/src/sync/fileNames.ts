@@ -7,9 +7,12 @@ export function isSafeFileName(name: string): boolean {
   return !FORBIDDEN.test(name);
 }
 
-/** Hidden files (".DS_Store", ".git") are never synchronized. */
+/**
+ * Hidden files (".DS_Store", ".git") are never synchronized, nor is "__proto__": as a key of
+ * the snapshot entries it would replace their prototype.
+ */
 export function isSyncableName(name: string): boolean {
-  return isSafeFileName(name) && !name.startsWith('.');
+  return isSafeFileName(name) && !name.startsWith('.') && name !== '__proto__';
 }
 
 /**

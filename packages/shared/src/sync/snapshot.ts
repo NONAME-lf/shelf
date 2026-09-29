@@ -25,6 +25,11 @@ export function emptySnapshot(folderPath: string): SyncSnapshot {
   return { folderPath, syncedAt: null, entries: {} };
 }
 
+/** Own entries only: a file named "constructor" or "toString" is not an entry of every snapshot. */
+export function getEntry(snapshot: SyncSnapshot, name: string): SnapshotEntry | undefined {
+  return Object.hasOwn(snapshot.entries, name) ? snapshot.entries[name] : undefined;
+}
+
 export function putEntry(snapshot: SyncSnapshot, entry: SnapshotEntry): void {
   snapshot.entries[entry.name] = entry;
 }

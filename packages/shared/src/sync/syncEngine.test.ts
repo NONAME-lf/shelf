@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sha256Hex } from '../hash';
 import { extensionOf } from '../fileListOperations';
 import type { UploadResult } from '../fileApiClient';
@@ -201,6 +201,18 @@ describe('SyncEngine', () => {
     expect(await engine().scan()).toEqual([]);
   });
 
+  it('ignores a file named __proto__', async () => {
+    folder.setFile('__proto__', 'x', T0);
+    await server.put('__proto__', 'y');
+    expect(await engine().scan()).toEqual([]);
+  });
+
+  it('compares a file named like a built-in object key by checksum on the first sync', async () => {
+    folder.setFile('constructor', 'mine', T0);
+    await server.put('constructor', 'theirs');
+    expect(statuses(await engine().scan())).toEqual({ constructor: SyncStatus.CONFLICT });
+  });
+
   it('rejects resolving a file that is not in conflict', async () => {
     folder.setFile('Main.kt', 'x', T0);
     const sync = engine();
@@ -369,5 +381,35 @@ describe('SyncEngine — a snapshot entry belongs to one server file', () => {
     await server.put('todo.txt', 'a file of another account');
 
     expect(statuses(await engine().scan())).toEqual({ 'todo.txt': SyncStatus.CONFLICT });
+  });
+});
+
+describe('SyncEngine — failures around the run', () => {
+  it('forgets the plan when saving the snapshot fails', async () => {
+    folder.setFile('todo.txt', 'v1', T0);
+    await engine().synchronize();
+    await server.put('todo.txt', 'server edit');
+    folder.setFile('todo.txt', 'local edit', T0 + 90 * MINUTE);
+
+    const sync = engine();
+    expect(statuses(await sync.scan())).toEqual({ 'todo.txt': SyncStatus.CONFLICT });
+    vi.spyOn(store, 'save').mockRejectedValueOnce(new Error('disk full'));
+    await expect(sync.synchronize()).rejects.toThrow('disk full');
+    expect(sync.conflicts()).toEqual([]);
+
+    folder.setFile('new.txt', 'added after the failure', T0);
+    await sync.synchronize();
+    expect(server.text('new.txt')).toBe('added after the failure');
+  });
+
+  it('finishes the run when the progress callback throws', async () => {
+    folder.setFile('a.txt', 'a', T0);
+    folder.setFile('b.txt', 'b', T0);
+
+    const report = await engine().synchronize(() => {
+      throw new Error('window closed');
+    });
+    expect(report).toMatchObject({ uploaded: 2, errors: [] });
+    expect(Object.keys(store.peek(FOLDER)?.entries ?? {}).sort()).toEqual(['a.txt', 'b.txt']);
   });
 });

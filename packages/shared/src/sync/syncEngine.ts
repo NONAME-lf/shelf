@@ -3,7 +3,7 @@ import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from '../limits';
 import { Side, SyncStatus, type FileEntryDto, type LocalFile } from '../types';
 import { collidingNames, isSyncableName } from './fileNames';
 import type { LocalFolder } from './localFolder';
-import { putEntry, removeEntry, type SnapshotStore, type SyncSnapshot } from './snapshot';
+import { getEntry, putEntry, removeEntry, type SnapshotStore, type SyncSnapshot } from './snapshot';
 import { buildItems, decideDirection, needsChecksum, type SyncItem } from './syncPlanner';
 
 export type SyncApi = Pick<FileApiClient, 'listFiles' | 'upload' | 'download'>;
@@ -45,7 +45,7 @@ export class SyncEngine {
 
     const checksums: Record<string, string> = {};
     for (const file of localFiles) {
-      const input = { local: file, remote: remoteByName.get(file.name), snapshot: snapshot.entries[file.name] };
+      const input = { local: file, remote: remoteByName.get(file.name), snapshot: getEntry(snapshot, file.name) };
       if (needsChecksum(input)) checksums[file.name] = await localFolder.checksum(file.name);
     }
 
@@ -72,6 +72,17 @@ export class SyncEngine {
    * A plan from an earlier `scan()` is re-checked first: a file changed since then is skipped.
    */
   async synchronize(onProgress?: (progress: SyncProgress) => void): Promise<SyncReport> {
+    try {
+      return await this.run(onProgress);
+    } finally {
+      // Whatever happened, the next run starts from a fresh scan.
+      this.items = [];
+      this.colliding = [];
+      this.snapshot = null;
+    }
+  }
+
+  private async run(onProgress?: (progress: SyncProgress) => void): Promise<SyncReport> {
     const planned = this.snapshot !== null;
     if (!planned) await this.scan();
     const snapshot = this.snapshot as SyncSnapshot;
@@ -88,17 +99,13 @@ export class SyncEngine {
         await this.apply(item, snapshot, report);
       }
       done += 1;
-      onProgress?.({ done, total, name: item.name });
+      notify(onProgress, { done, total, name: item.name });
     }
 
     const present = new Set([...this.items.map((item) => item.name), ...this.colliding]);
     for (const name of Object.keys(snapshot.entries)) if (!present.has(name)) removeEntry(snapshot, name);
     snapshot.syncedAt = (this.deps.now ?? (() => new Date()))().toISOString();
     await this.deps.snapshotStore.save(snapshot);
-
-    this.items = [];
-    this.colliding = [];
-    this.snapshot = null;
     return report;
   }
 
@@ -178,6 +185,15 @@ export class SyncEngine {
       checksum: item.remote.checksum,
       remoteId: item.remote.id,
     });
+  }
+}
+
+/** A failing progress display must not abort the transfer. */
+function notify(onProgress: ((progress: SyncProgress) => void) | undefined, progress: SyncProgress): void {
+  try {
+    onProgress?.(progress);
+  } catch {
+    // ignored on purpose
   }
 }
 

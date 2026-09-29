@@ -1,6 +1,6 @@
 import { Side, SyncStatus, type FileEntryDto, type LocalFile } from '../types';
 import { isSyncableName } from './fileNames';
-import type { SnapshotEntry, SyncSnapshot } from './snapshot';
+import { getEntry, type SnapshotEntry, type SyncSnapshot } from './snapshot';
 
 export const TIME_TOLERANCE_MS = 2000;
 
@@ -34,7 +34,8 @@ export function needsChecksum(input: StatusInput): boolean {
   return Boolean(input.local && input.remote && !trustedSnapshot(input));
 }
 
-const differs = (a: number, b: number) => Math.abs(a - b) > TIME_TOLERANCE_MS;
+/** Written as "not within the tolerance" so that an unreadable time (NaN) counts as changed. */
+const differs = (a: number, b: number) => !(Math.abs(a - b) <= TIME_TOLERANCE_MS);
 
 /** Spec §5.2: compares both sides with the snapshot taken after the last synchronization. */
 export function computeStatus(input: StatusInput): SyncStatus {
@@ -99,8 +100,8 @@ export function buildItems(
     item.status = computeStatus({
       local: item.local,
       remote: item.remote,
-      snapshot: snapshot.entries[name],
-      localChecksum: checksums[name],
+      snapshot: getEntry(snapshot, name),
+      localChecksum: Object.hasOwn(checksums, name) ? checksums[name] : undefined,
     });
     return item;
   });

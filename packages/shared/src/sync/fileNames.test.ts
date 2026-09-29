@@ -14,6 +14,11 @@ describe('file names', () => {
     expect(isSyncableName('.DS_Store')).toBe(false);
     expect(isSyncableName('Main.kt')).toBe(true);
   });
+
+  it('does not synchronize a file named __proto__ (it would replace the prototype of the snapshot entries)', () => {
+    expect(isSyncableName('__proto__')).toBe(false);
+    expect(isSyncableName('constructor')).toBe(true);
+  });
 });
 
 describe('names that are one file on a case-insensitive file system', () => {

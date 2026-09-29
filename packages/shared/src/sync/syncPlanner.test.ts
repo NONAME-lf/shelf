@@ -59,6 +59,13 @@ describe('computeStatus — таблиця статусів §5.2', () => {
     expect(computeStatus({ local: edited, remote: replaced, snapshot: snapshotEntry() })).toBe(SyncStatus.CONFLICT);
   });
 
+  it('counts an unreadable time as a change', () => {
+    const unreadableRemote = fileEntry('Main.kt', { modifiedAt: 'not a date' });
+    const unreadableLocal = localFile('Main.kt', { modifiedAt: Number.NaN });
+    expect(computeStatus({ local, remote: unreadableRemote, snapshot: snapshotEntry() })).toBe(SyncStatus.REMOTE_NEWER);
+    expect(computeStatus({ local: unreadableLocal, remote, snapshot: snapshotEntry() })).toBe(SyncStatus.LOCAL_NEWER);
+  });
+
   it('without a snapshot: equal checksums → IN_SYNC, different → CONFLICT', () => {
     expect(needsChecksum({ local, remote })).toBe(true);
     expect(computeStatus({ local, remote, localChecksum: remote.checksum })).toBe(SyncStatus.IN_SYNC);
@@ -138,6 +145,14 @@ describe('buildItems', () => {
       SyncStatus.LOCAL_ONLY,
       SyncStatus.REMOTE_ONLY,
     ]);
+  });
+
+  it('does not mistake built-in object keys for a snapshot entry or a checksum', () => {
+    const local = [localFile('constructor'), localFile('toString')];
+    const remote = [fileEntry('constructor'), fileEntry('toString')];
+    const [constructorItem] = buildItems(local.slice(0, 1), remote.slice(0, 1), emptySnapshot('/x'), { constructor: 'd'.repeat(64) });
+    expect(constructorItem.status).toBe(SyncStatus.CONFLICT);
+    expect(() => buildItems(local.slice(1), remote.slice(1), emptySnapshot('/x'), {})).toThrow('toString');
   });
 
   it('uses the supplied checksums when there is no snapshot entry', () => {
