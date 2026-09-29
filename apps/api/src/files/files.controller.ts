@@ -17,6 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { MAX_UPLOAD_BYTES, type FileEntryDto } from '@shelf/shared';
 import type { Response } from 'express';
+import type { Readable } from 'node:stream';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthUser } from '../auth/jwt.strategy';
@@ -25,6 +26,13 @@ import { WorkspaceService } from '../workspace/workspace.service';
 import { contentDisposition, contentTypeFor, decodeUploadName } from './content-type';
 import { toFileEntryDto } from './file-entry.mapper';
 import { FilesService } from './files.service';
+
+/** `pipe` does not destroy its source when the client aborts, which would keep the S3 body and its socket open. */
+export function releaseOnClose(response: Pick<Response, 'once'>, stream: Readable): void {
+  response.once('close', () => {
+    if (!stream.destroyed && !stream.readableEnded) stream.destroy();
+  });
+}
 
 const FileId = () => Param('id', createFileIdPipe());
 
@@ -68,9 +76,14 @@ export class FilesController {
   }
 
   @Get(':id/content')
-  async content(@CurrentUser() user: AuthUser, @FileId() id: string): Promise<StreamableFile> {
+  async content(
+    @CurrentUser() user: AuthUser,
+    @FileId() id: string,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
     const workspace = await this.workspaces.forUser(user.id);
     const { entry, stream } = await this.files.content(workspace.id, id);
+    releaseOnClose(response, stream);
     return new StreamableFile(stream, {
       type: contentTypeFor(entry.name),
       disposition: contentDisposition(entry.name),
