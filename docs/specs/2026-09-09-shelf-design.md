@@ -273,7 +273,7 @@ DTO: `RegisterDto {email, password, displayName}`, `LoginDto {email, password}`,
 `FileEntryDto {id, name, extension, size, checksum, createdAt, modifiedAt, uploadedBy, editedBy}`
 (`uploadedBy` / `editedBy` — `displayName`).
 
-REST API (префікс `/api`; усі маршрути, крім `auth/register` і `auth/login`, вимагають `Authorization: Bearer <jwt>`):
+REST API (префікс `/api`; усі маршрути, крім `auth/register`, `auth/login` і `health`, вимагають `Authorization: Bearer <jwt>`):
 
 | Метод | Шлях | Тіло / параметри | Відповідь |
 |---|---|---|---|
@@ -286,6 +286,7 @@ REST API (префікс `/api`; усі маршрути, крім `auth/registe
 | GET | `/api/workspace/files/:id` | — | `FileEntryDto` |
 | GET | `/api/workspace/files/:id/content` | — | байти, `Content-Type`, `Content-Disposition` |
 | DELETE | `/api/workspace/files/:id` | — | 204 |
+| GET | `/api/health` | — | `{status: "ok"}` (перевірка стану контейнера) |
 
 Помилки: 400 — валідація (`class-validator`), 401 — немає / протух JWT, 404 — файл не в цьому
 просторі, 409 — email зайнятий, 413 — перевищено 50 МБ. Swagger на `/api/docs` (лише поза
@@ -336,7 +337,9 @@ shelf/
 Презентаційні компоненти, спільні для десктопа і веба: `AuthForm`, `WorkspaceLayout`
 (бічна панель + вміст), `FileTableView`, `SortHeaderControl`, `TypeFilterControl`,
 `ColumnPicker`, `PreviewDialog`, `UploadDropzone`, `SyncPanel`, `ConflictDialog`,
-`SyncReportView`. Стилі — Tailwind зі спільним пресетом. Жодних `next/*` імпортів.
+`SyncReportView`. Також: `Banner`, `Button`, `Modal`, `UploadButton`, `SidebarSection` і хук
+`useFileListController` — керівний клас `FileListController` з VOPC. Стилі — Tailwind зі
+спільним пресетом. Жодних `next/*` імпортів.
 
 **Вигляд (принцип, деталі на етапі 2):** ліва бічна панель з назвою простору, користувачем,
 блоком синхронізації (папка, перемикач відстеження, кнопка) і перемикачами стовпців; основна
@@ -346,12 +349,15 @@ shelf/
 
 ### 7.4. `apps/desktop`
 
-- **main**: `NodeLocalFolder` (`fs`), `FolderWatcher` (`chokidar`), `JsonSnapshotStore`
-  (`userData/snapshot.json`), `SettingsStore` (адреса сервера, шлях папки), `dragOutHandler`
-  (`webContents.startDrag`), діалог вибору папки.
-- **preload**: типізований IPC-міст.
-- **renderer**: React; екрани `LoginScreen`, `WorkspaceScreen`; `FileListController` як хук
-  над `@shelf/shared`.
+- **main**: `SettingsStore` (`userData/settings.json`: адреса сервера, шлях папки, перемикач
+  відстеження), `NodeLocalFolder` (`fs`), `JsonSnapshotStore`
+  (`userData/snapshots/<sha1 шляху папки>.json`, один файл на папку), `FolderWatcher`
+  (`chokidar`), `SyncService` (обгортка `SyncEngine`: `scan`, `run(resolutions)`, `cancel`,
+  `autoSync`), `FileTransfers` (`saveAs`, `prepareDrag`/`startDrag` через
+  `webContents.startDrag`), `registerIpc` (обробники IPC і діалог вибору папки).
+- **preload**: міст `window.shelf` (`ShelfBridge`).
+- **renderer**: React; екрани `LoginScreen`, `WorkspaceScreen`, хук `useDesktopSync`;
+  `FileListController` — хук `useFileListController` з `@shelf/ui`.
 - Синхронізація виконується в main-процесі (доступ до `fs`), UI отримує прогрес через IPC.
 
 ### 7.5. `apps/web`
@@ -373,13 +379,16 @@ Vitest у `@shelf/shared` (мінімум для етапу 2):
 4. `computeStatus` — усі шість статусів, зокрема `CONFLICT` за знімком і без знімка.
 
 Jest у `apps/api`: `AuthService`, `FilesService` (оновлення версії змінює `editedBy`,
-`modifiedAt`, `checksum`), `StorageService` з моком S3. Vitest у `apps/desktop` для
-`SyncEngine` з in-memory `LocalFolder`.
+`modifiedAt`, `checksum`), `StorageService` з моком S3. Vitest у `apps/desktop`: `SettingsStore`,
+`NodeLocalFolder`, `JsonSnapshotStore`, `FolderWatcher`, `SyncService` і `SyncEngine` на справжній
+файловій системі (тимчасова папка) з in-memory API; `SyncEngine` з in-memory `LocalFolder` — у
+`@shelf/shared`.
 
 ## 9. Розгортання
 
 - **Локально**: `docker/compose.yml` — PostgreSQL 16, MinIO, api; клієнти запускаються з
-  вихідників. Seed створює трьох користувачів, кожен зі своїм робочим простором і демонстраційними
+  вихідників. Локальні порти: PostgreSQL 5433, MinIO 9100 (консоль 9101), API 4000.
+  Seed створює трьох користувачів, кожен зі своїм робочим простором і демонстраційними
   файлами; це показує ізоляцію просторів (id чужого файлу дає 404). У цій моделі колонки «хто
   завантажив» / «хто редагував» показують власника простору; вони відрізнялися б лише за спільних
   папок, які поза межами проєкту (§1.3).
