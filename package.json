@@ -2,7 +2,7 @@
   "name": "shelf",
   "private": true,
   "packageManager": "pnpm@10.34.6",
-  "engines": { "node": ">=22" },
+  "engines": { "node": ">=22.12" },
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
@@ -15,6 +15,7 @@
     "stack:reset": "docker compose --env-file docker/.env -f docker/compose.yml down -v"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "prisma", "electron", "esbuild"]
+    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "prisma", "electron", "esbuild"],
+    "ignoredBuiltDependencies": ["electron-winstaller"]
   }
 }
