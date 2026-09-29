@@ -17,11 +17,12 @@ export function SortHeaderControl({ direction, onDirectionChange, label = 'На�
       onClick={onHeaderClick}
       data-testid="sort-name"
       data-direction={direction}
-      title={ascending ? 'За зростанням — натисніть, щоб змінити' : 'За спаданням — натисніть, щоб змінити'}
+      aria-label={ascending ? 'Сортувати за назвою: за зростанням' : 'Сортувати за назвою: за спаданням'}
+      title={ascending ? 'Сортувати за назвою: за зростанням' : 'Сортувати за назвою: за спаданням'}
       className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wide hover:text-brass-2"
     >
       {label}
-      {ascending ? <ArrowDownAZ size={16} /> : <ArrowDownZA size={16} />}
+      {ascending ? <ArrowDownAZ size={18} /> : <ArrowDownZA size={18} />}
     </button>
   );
 }

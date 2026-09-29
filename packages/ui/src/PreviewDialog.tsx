@@ -36,7 +36,7 @@ function PreviewBody({ state }: { state: PreviewState | null }) {
   if (result.kind === 'TEXT') {
     return (
       <>
-        <pre data-testid="preview-text" className="max-h-[50vh] overflow-auto rounded-md bg-ink p-4 font-mono text-[13px] leading-relaxed text-paper">
+        <pre data-testid="preview-text" className="max-h-[45vh] overflow-auto rounded-md bg-ink p-4 font-mono text-[13px] leading-relaxed text-paper">
           {result.text}
         </pre>
         {result.truncated ? <p className="mt-2 text-xs text-muted">Показано перший мегабайт файлу.</p> : null}
@@ -45,7 +45,7 @@ function PreviewBody({ state }: { state: PreviewState | null }) {
   }
   return (
     <div className="flex justify-center rounded-md bg-paper-2 p-4">
-      <img data-testid="preview-image" src={result.url} alt="" className="max-h-[55vh] max-w-full object-contain" />
+      <img data-testid="preview-image" src={result.url} alt="" className="max-h-[45vh] w-auto max-w-full object-contain" />
     </div>
   );
 }
