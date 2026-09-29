@@ -1,18 +1,18 @@
 // Captures the stage 2 report screenshots. Precondition: a fresh stack with demo data:
 //   pnpm stack:reset && pnpm stack:up && pnpm seed
-import { mkdir, mkdtemp, utimes, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { launchApp, login, loginUser, REPO_DIR, SERVER, uploadText } from './lib/app.mjs';
 
 const OUT = join(REPO_DIR, 'docs/reports/img/stage2');
 await mkdir(OUT, { recursive: true });
-const folder = await mkdtemp(join(tmpdir(), 'Shelf-'));
+const folder = await mkdtemp('/tmp/Shelf-') // a short, readable path for the sidebar;
 await writeFile(join(folder, 'lab-notes.txt'), 'Нотатки до лабораторної: перевірити синхронізацію.\n');
 
 const { app, page } = await launchApp({ settings: { folderPath: folder } });
 const shot = async (name) => {
   await page.mouse.move(1100, 780); // park the pointer on empty space: no leftover row hover
+  await page.evaluate(() => document.activeElement?.blur()); // and drop focus left from a closed dialog
   await page.waitForTimeout(300);
   await page.screenshot({ path: join(OUT, `${name}.png`) });
   console.log(`saved ${name}.png`);
@@ -50,14 +50,10 @@ try {
   await page.getByTestId('preview-text').waitFor();
   await shot('08-preview-kt');
   await page.keyboard.press('Escape');
-  // The image dialog is taller than the default window, so enlarge the window for this shot only.
-  const resize = (height) => app.evaluate(({ BrowserWindow }, h) => BrowserWindow.getAllWindows()[0].setContentSize(1280, h), height);
-  await resize(1000);
   await row('mountains.jpg').click();
   await page.getByTestId('preview-image').waitFor();
   await shot('09-preview-jpg');
   await page.keyboard.press('Escape');
-  await resize(788);
   await row('backup.zip').click();
   await page.getByTestId('preview-unsupported').waitFor();
   await shot('10-preview-none');
@@ -114,4 +110,5 @@ try {
   console.log('saved 17-swagger.png');
 } finally {
   await app.close();
+  await rm(folder, { recursive: true, force: true });
 }

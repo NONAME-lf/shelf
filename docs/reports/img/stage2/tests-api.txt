@@ -1,94 +1,58 @@
-
-> @shelf/api@0.1.0 test /Users/user/uni/4year/it/googleDrive/shelf/apps/api
-> prisma generate && jest --verbose --reporters=default
-
-Environment variables loaded from .env
-Prisma schema loaded from prisma/schema.prisma
-
-✔ Generated Prisma Client (v6.19.3) to ./../../node_modules/@prisma/client in 45ms
-
-Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
-
-Tip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate
-
-watchman warning: Recrawled this watch 7 times, most recently because:
-MustScanSubDirs UserDroppedTo resolve, please review the information on
-https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
-To clear this warning, run:
-`watchman watch-del '/Users/user/uni/4year/it/googleDrive/shelf' ; watchman watch-project '/Users/user/uni/4year/it/googleDrive/shelf'`
-
-PASS src/auth/jwt-auth.guard.spec.ts
-  JwtAuthGuard.handleRequest
-    ✓ returns the authenticated user (7 ms)
-    ✓ rejects with a Ukrainian 401 for no user
-    ✓ rejects with a Ukrainian 401 for a passport error
-
-[Nest] 81138  - 09/29/2026, 10:21:48 PM     LOG [StorageService] Created bucket "shelf"
-PASS src/storage/storage.service.spec.ts
-  StorageService
-    ✓ puts an object with its content type into the bucket (2 ms)
-    ✓ returns the object body as a stream (2 ms)
-    ✓ deletes an object
-    ✓ creates the bucket on start-up when it does not exist (1 ms)
-    ✓ keeps running when the bucket check fails for another reason (5 ms)
-
 PASS src/config/config.spec.ts
   loadConfig
-    ✓ applies defaults (4 ms)
-    ✓ fails fast without DATABASE_URL (5 ms)
+    ✓ applies defaults (3 ms)
+    ✓ fails fast without DATABASE_URL (10 ms)
     ✓ fails fast without JWT_SECRET (1 ms)
     ✓ fails fast without S3_ACCESS_KEY
     ✓ fails fast without S3_SECRET_KEY
-    ✓ reads the optional settings (1 ms)
+    ✓ reads the optional settings
     ✓ rejects a port that is not a number
+
+PASS src/auth/jwt-auth.guard.spec.ts
+  JwtAuthGuard.handleRequest
+    ✓ returns the authenticated user (3 ms)
+    ✓ rejects with a Ukrainian 401 for no user (1 ms)
+    ✓ rejects with a Ukrainian 401 for a passport error
 
 PASS src/files/content-type.spec.ts
   contentTypeFor
-    ✓ Main.kt → text/plain; charset=utf-8 (2 ms)
+    ✓ Main.kt → text/plain; charset=utf-8 (3 ms)
     ✓ main.cpp → text/plain; charset=utf-8
     ✓ photo.jpg → image/jpeg
     ✓ PHOTO.JPEG → image/jpeg
-    ✓ logo.png → image/png (1 ms)
-    ✓ backup.zip → application/octet-stream
+    ✓ logo.png → image/png
+    ✓ backup.zip → application/octet-stream (1 ms)
   contentDisposition
     ✓ keeps an ASCII fallback and the exact UTF-8 name (RFC 5987)
     ✓ neutralises quotes in the fallback
   decodeUploadName
-    ✓ repairs a UTF-8 name that multer decoded as latin1
+    ✓ repairs a UTF-8 name that multer decoded as latin1 (13 ms)
     ✓ keeps an ASCII name
     ✓ keeps a name that is already decoded
+
+PASS src/storage/storage.service.spec.ts
+  StorageService
+    ✓ puts an object with its content type into the bucket (3 ms)
+    ✓ returns the object body as a stream
+    ✓ deletes an object
+    ✓ creates the bucket on start-up when it does not exist (1 ms)
+    ✓ keeps running when the bucket check fails for another reason (1 ms)
 
 PASS src/files/files.service.spec.ts
   FilesService
     ✓ creates a new entry with the uploader as author and editor (3 ms)
-    ✓ uploading the same name again updates the same entry (UC10) (1 ms)
+    ✓ uploading the same name again updates the same entry (UC10) (2 ms)
     ✓ stores names with leading and trailing spaces exactly and updates them in place
-    ✓ rejects the unsafe name "../secret.txt" (1 ms)
+    ✓ rejects the unsafe name "../secret.txt"
     ✓ rejects the unsafe name "a/b.txt"
     ✓ rejects the unsafe name "a\\b.txt"
     ✓ rejects the unsafe name ""
     ✓ rejects the unsafe name "   "
-    ✓ rejects the unsafe name ".." (1 ms)
+    ✓ rejects the unsafe name ".."
     ✓ does not expose another workspace's file
     ✓ streams the content of a file (1 ms)
-    ✓ removes the row and the stored object
+    ✓ removes the row and the stored object (1 ms)
     ✓ lists the files of one workspace with display names
-
-PASS src/http-setup.spec.ts
-  createFileIdPipe
-    ✓ accepts a v4 uuid (2 ms)
-    ✓ turns a malformed id into a 404 with the file-not-found message
-  global validation pipe
-    ✓ reports an unknown property in Ukrainian (3 ms)
-    ✓ reports a too long display name in Ukrainian
-    ✓ reports a non-string display name in Ukrainian (1 ms)
-    ✓ accepts a valid body
-  upload error mapping
-    ✓ maps multer 413 to the Ukrainian size message and keeps the status
-    ✓ maps an unexpected multipart field to a Ukrainian 400
-    ✓ passes [BadRequestException: Файл не передано] through unchanged
-    ✓ passes [ConflictException: Цей email уже зайнятий] through unchanged
-    ✓ the filter replies with the mapped exception (1 ms)
 
 PASS src/files/files.controller.spec.ts
   releaseOnClose
@@ -96,16 +60,32 @@ PASS src/files/files.controller.spec.ts
     ✓ leaves a fully read stream alone (1 ms)
     ✓ does nothing before the response closes
 
+PASS src/http-setup.spec.ts
+  createFileIdPipe
+    ✓ accepts a v4 uuid (4 ms)
+    ✓ turns a malformed id into a 404 with the file-not-found message
+  global validation pipe
+    ✓ reports an unknown property in Ukrainian (2 ms)
+    ✓ reports a too long display name in Ukrainian (1 ms)
+    ✓ reports a non-string display name in Ukrainian
+    ✓ accepts a valid body (1 ms)
+  upload error mapping
+    ✓ maps multer 413 to the Ukrainian size message and keeps the status
+    ✓ maps an unexpected multipart field to a Ukrainian 400
+    ✓ passes [BadRequestException: Файл не передано] through unchanged (1 ms)
+    ✓ passes [ConflictException: Цей email уже зайнятий] through unchanged
+    ✓ the filter replies with the mapped exception
+
 PASS src/auth/auth.service.spec.ts
   AuthService
-    ✓ registers a user, stores a bcrypt hash and returns a token for that user (76 ms)
+    ✓ registers a user, stores a bcrypt hash and returns a token for that user (82 ms)
     ✓ rejects an email that is already registered, ignoring case (66 ms)
     ✓ maps a unique-constraint race to 409 (64 ms)
-    ✓ logs in with the right password (129 ms)
-    ✓ rejects a wrong password and an unknown email the same way (135 ms)
+    ✓ logs in with the right password (126 ms)
+    ✓ rejects a wrong password and an unknown email the same way (128 ms)
 
 Test Suites: 8 passed, 8 total
 Tests:       58 passed, 58 total
 Snapshots:   0 total
-Time:        2.899 s
+Time:        2.803 s, estimated 3 s
 Ran all test suites.
