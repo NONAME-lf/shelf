@@ -31,6 +31,27 @@ export async function launchApp({ bind, executablePath } = {}) {
   return { app, page, userData };
 }
 
+/**
+ * Closes the app. A row drag-out (webContents.startDrag) opens a native macOS drag session that only a
+ * real mouse button release ends, and the app cannot quit while it is open; synthetic Playwright input
+ * never releases it, so after `graceMs` the process is killed.
+ */
+export async function closeApp(app, graceMs = 10_000) {
+  const child = app.process();
+  let timer;
+  const closed = app.close().then(
+    () => true,
+    () => true,
+  );
+  const quit = await Promise.race([closed, new Promise((resolve) => (timer = setTimeout(() => resolve(false), graceMs)))]);
+  clearTimeout(timer);
+  if (!quit) {
+    child.kill('SIGKILL');
+    await closed;
+    console.log(`note: the app did not quit within ${graceMs / 1000} s (native drag session still open) and was killed`);
+  }
+}
+
 export async function login(page, email, password = DEMO_PASSWORD) {
   await page.getByTestId('auth-email').fill(email);
   await page.getByTestId('auth-password').fill(password);

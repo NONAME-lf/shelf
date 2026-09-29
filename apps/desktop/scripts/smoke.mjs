@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { launchApp, login, registerUser, rowNames, uploadDemoFile } from './lib/app.mjs';
+import { closeApp, launchApp, login, registerUser, rowNames, uploadDemoFile } from './lib/app.mjs';
 
 const email = `smoke-${Date.now()}@shelf.dev`;
 const token = await registerUser(email, 'Смоук');
@@ -133,5 +133,5 @@ try {
   console.log('ok  logout');
   console.log(`desktop-smoke: OK (screenshots in ${shots})`);
 } finally {
-  await app.close();
+  await closeApp(app);
 }
