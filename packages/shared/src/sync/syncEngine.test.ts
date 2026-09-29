@@ -8,6 +8,7 @@ import { Side, SyncStatus, type FileEntryDto } from '../types';
 import { MemoryLocalFolder } from './localFolder';
 import { MemorySnapshotStore } from './snapshot';
 import { SyncEngine, type SyncApi } from './syncEngine';
+import { defaultSide } from './syncPlanner';
 
 const MINUTE = 60_000;
 const FOLDER = '/home/artem/shelf';
@@ -16,6 +17,7 @@ const FOLDER = '/home/artem/shelf';
 class FakeServer implements SyncApi {
   readonly files = new Map<string, { entry: FileEntryDto; bytes: Uint8Array }>();
   readonly failUploadFor = new Set<string>();
+  readonly failDownloadFor = new Set<string>();
   uploads = 0;
   private clock = T0 + 30 * MINUTE;
   private sequence = 0;
@@ -64,6 +66,7 @@ class FakeServer implements SyncApi {
   async download(id: string): Promise<Blob> {
     const file = [...this.files.values()].find((candidate) => candidate.entry.id === id);
     if (!file) throw new Error(`not found: ${id}`);
+    if (this.failDownloadFor.has(file.entry.name)) throw new Error('network down');
     return new Blob([new Uint8Array(file.bytes)]);
   }
 }
@@ -133,7 +136,7 @@ describe('SyncEngine', () => {
     await engine().synchronize();
 
     await server.put('todo.txt', 'server edit');
-    folder.setFile('todo.txt', 'local edit, made later', Date.now());
+    folder.setFile('todo.txt', 'local edit, made later', T0 + 90 * MINUTE);
 
     const sync = engine();
     expect(statuses(await sync.scan())).toEqual({ 'todo.txt': SyncStatus.CONFLICT });
@@ -147,13 +150,28 @@ describe('SyncEngine', () => {
     await engine().synchronize();
 
     await server.put('todo.txt', 'server edit');
-    folder.setFile('todo.txt', 'local edit, made later', Date.now());
+    folder.setFile('todo.txt', 'local edit, made later', T0 + 90 * MINUTE);
 
     const sync = engine();
     await sync.scan();
     sync.resolve('todo.txt', Side.REMOTE);
     expect(await sync.synchronize()).toMatchObject({ uploaded: 0, downloaded: 1, conflicts: 1 });
     expect(folder.text('todo.txt')).toBe('server edit');
+  });
+
+  it("the user's choice of LOCAL overrides the newer server version", async () => {
+    folder.setFile('todo.txt', 'v1', T0);
+    await engine().synchronize();
+    folder.setFile('todo.txt', 'local edit, made earlier', T0 + 5 * MINUTE);
+    await server.put('todo.txt', 'server edit');
+
+    const sync = engine();
+    const [conflict] = await sync.scan();
+    expect(conflict.status).toBe(SyncStatus.CONFLICT);
+    expect(defaultSide(conflict)).toBe(Side.REMOTE);
+    sync.resolve('todo.txt', Side.LOCAL);
+    expect(await sync.synchronize()).toMatchObject({ uploaded: 1, downloaded: 0, conflicts: 1 });
+    expect(server.text('todo.txt')).toBe('local edit, made earlier');
   });
 
   it('first sync compares checksums when there is no snapshot', async () => {
@@ -182,6 +200,19 @@ describe('SyncEngine', () => {
     const retry = engine();
     expect(statuses(await retry.scan())['b.txt']).toBe(SyncStatus.LOCAL_ONLY);
     expect(await retry.synchronize()).toMatchObject({ uploaded: 1, errors: [] });
+  });
+
+  it('a failed download leaves the local file and its snapshot entry as they were', async () => {
+    folder.setFile('todo.txt', 'v1', T0);
+    await engine().synchronize();
+    const entryBefore = structuredClone(store.peek(FOLDER)?.entries['todo.txt']);
+    await server.put('todo.txt', 'server edit');
+    server.failDownloadFor.add('todo.txt');
+
+    const report = await engine().synchronize();
+    expect(report).toMatchObject({ downloaded: 0, errors: ['todo.txt: network down'] });
+    expect(folder.text('todo.txt')).toBe('v1');
+    expect(store.peek(FOLDER)?.entries['todo.txt']).toEqual(entryBefore);
   });
 
   it('reports files above 50 MB instead of uploading them', async () => {

@@ -38,6 +38,21 @@ describe('computeStatus — таблиця статусів §5.2', () => {
     expect(computeStatus({ local: shifted, remote, snapshot: snapshotEntry() })).toBe(SyncStatus.IN_SYNC);
   });
 
+  it('IN_SYNC at exactly 2 seconds; a change beyond that', () => {
+    const atBoundary = localFile('Main.kt', { modifiedAt: T0 + 2000 });
+    const beyond = localFile('Main.kt', { modifiedAt: T0 + 2001 });
+    expect(computeStatus({ local: atBoundary, remote, snapshot: snapshotEntry() })).toBe(SyncStatus.IN_SYNC);
+    expect(computeStatus({ local: beyond, remote, snapshot: snapshotEntry() })).toBe(SyncStatus.LOCAL_NEWER);
+  });
+
+  it('applies the same tolerance to the server time', () => {
+    const shifted = (ms: number) => fileEntry('Main.kt', { modifiedAt: iso(T0 + ms) });
+    expect(computeStatus({ local, remote: shifted(1500), snapshot: snapshotEntry() })).toBe(SyncStatus.IN_SYNC);
+    expect(computeStatus({ local, remote: shifted(-2000), snapshot: snapshotEntry() })).toBe(SyncStatus.IN_SYNC);
+    expect(computeStatus({ local, remote: shifted(2000), snapshot: snapshotEntry() })).toBe(SyncStatus.IN_SYNC);
+    expect(computeStatus({ local, remote: shifted(2001), snapshot: snapshotEntry() })).toBe(SyncStatus.REMOTE_NEWER);
+  });
+
   it('LOCAL_NEWER when only the local time changed', () => {
     const edited = localFile('Main.kt', { modifiedAt: T0 + MINUTE });
     expect(computeStatus({ local: edited, remote, snapshot: snapshotEntry() })).toBe(SyncStatus.LOCAL_NEWER);
@@ -113,6 +128,10 @@ describe('conflict side', () => {
   it('by default keeps the newer version', () => {
     expect(defaultSide(conflict(T0 + MINUTE, T0))).toBe(Side.LOCAL);
     expect(defaultSide(conflict(T0, T0 + MINUTE))).toBe(Side.REMOTE);
+  });
+
+  it('keeps the server version when both times are equal', () => {
+    expect(defaultSide(conflict(T0, T0))).toBe(Side.REMOTE);
   });
 
   it("follows the user's choice", () => {
