@@ -53,7 +53,9 @@ export function computeStatus(input: StatusInput): SyncStatus {
   }
 
   const localChanged = differs(local.modifiedAt, snapshot.localModifiedAt) || local.size !== snapshot.localSize;
-  const remoteChanged = differs(Date.parse(remote.modifiedAt), Date.parse(snapshot.remoteModifiedAt));
+  // The snapshot keeps the remote checksum from the last sync, so a version uploaded within the time tolerance is seen too.
+  const remoteChanged =
+    remote.checksum !== snapshot.checksum || differs(Date.parse(remote.modifiedAt), Date.parse(snapshot.remoteModifiedAt));
   if (localChanged && remoteChanged) return SyncStatus.CONFLICT;
   if (localChanged) return SyncStatus.LOCAL_NEWER;
   if (remoteChanged) return SyncStatus.REMOTE_NEWER;

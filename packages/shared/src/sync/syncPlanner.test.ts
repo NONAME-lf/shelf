@@ -33,6 +33,26 @@ describe('computeStatus — таблиця статусів §5.2', () => {
     expect(computeStatus({ local, remote, snapshot: snapshotEntry() })).toBe(SyncStatus.IN_SYNC);
   });
 
+  describe('a remote time within the 2 s tolerance', () => {
+    const near = { modifiedAt: iso(T0 + 1000) };
+
+    it('REMOTE_NEWER when the remote checksum differs from the snapshot', () => {
+      const changed = fileEntry('Main.kt', { ...near, checksum: 'd'.repeat(64) });
+      expect(computeStatus({ local, remote: changed, snapshot: snapshotEntry() })).toBe(SyncStatus.REMOTE_NEWER);
+    });
+
+    it('CONFLICT when the local file changed too', () => {
+      const changed = fileEntry('Main.kt', { ...near, checksum: 'd'.repeat(64) });
+      const edited = localFile('Main.kt', { modifiedAt: T0 + MINUTE });
+      expect(computeStatus({ local: edited, remote: changed, snapshot: snapshotEntry() })).toBe(SyncStatus.CONFLICT);
+    });
+
+    it('IN_SYNC when the remote checksum is the same', () => {
+      const same = fileEntry('Main.kt', near);
+      expect(computeStatus({ local, remote: same, snapshot: snapshotEntry() })).toBe(SyncStatus.IN_SYNC);
+    });
+  });
+
   it('IN_SYNC when the times differ by less than 2 seconds', () => {
     const shifted = localFile('Main.kt', { modifiedAt: T0 + 1500 });
     expect(computeStatus({ local: shifted, remote, snapshot: snapshotEntry() })).toBe(SyncStatus.IN_SYNC);
