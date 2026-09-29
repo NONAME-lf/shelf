@@ -196,7 +196,9 @@ IndexedDB). Кнопка «Synchronize» працює з прив'язаною �
 
 «Змінилося локально» = `localFile.modifiedAt ≠ snapshot.localModifiedAt` або
 `localFile.size ≠ snapshot.localSize`. «Змінилося віддалено» = `remoteFile.modifiedAt ≠
-snapshot.remoteModifiedAt`. Допуск для часу — 2 с включно; нечитабельний час вважається зміною.
+snapshot.remoteModifiedAt` або `remoteFile.checksum ≠ snapshot.checksum` (знімок пам'ятає контрольну
+суму віддаленої версії на момент синхронізації, тож нова версія, вивантажена в межах допуску часу,
+теж помічається). Допуск для часу — 2 с включно; нечитабельний час вважається зміною.
 Запис знімка іншого серверного файлу (`snapshot.remoteId ≠ remoteFile.id` — інший акаунт або
 скинутий сервер) не враховується: файл порівнюється так, ніби знімка немає (рядки з `checksum`).
 
