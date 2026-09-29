@@ -9,12 +9,17 @@ await mkdir(OUT, { recursive: true });
 const folder = await mkdtemp('/tmp/Shelf-') // a short, readable path for the sidebar;
 await writeFile(join(folder, 'lab-notes.txt'), 'Нотатки до лабораторної: перевірити синхронізацію.\n');
 
+// Report crops in CSS pixels (the images are taken at device scale 2): the login and registration
+// forms without the empty background, the Swagger column without its side margins.
+const FORM_CLIP = { x: 390, y: 100, width: 500, height: 588 };
+const SWAGGER_CLIP = { x: 265, y: 0, width: 750, height: 712 };
+
 const { app, page } = await launchApp({ settings: { folderPath: folder } });
-const shot = async (name) => {
+const shot = async (name, clip) => {
   await page.mouse.move(1100, 780); // park the pointer on empty space: no leftover row hover
   await page.evaluate(() => document.activeElement?.blur()); // and drop focus left from a closed dialog
   await page.waitForTimeout(300);
-  await page.screenshot({ path: join(OUT, `${name}.png`) });
+  await page.screenshot({ path: join(OUT, `${name}.png`), clip });
   console.log(`saved ${name}.png`);
 };
 const row = (name) => page.locator(`[data-testid="file-row"][data-name="${name}"]`);
@@ -22,11 +27,11 @@ const row = (name) => page.locator(`[data-testid="file-row"][data-name="${name}"
 try {
   await page.getByTestId('auth-email').fill('artem@shelf.dev');
   await page.getByTestId('auth-password').fill('shelf-demo-2026');
-  await shot('01-login');
+  await shot('01-login', FORM_CLIP);
   await page.getByTestId('auth-toggle').click();
   await page.getByTestId('auth-name').fill('Олена');
   await page.getByTestId('auth-email').fill('olena@shelf.dev');
-  await shot('02-register');
+  await shot('02-register', FORM_CLIP);
   await page.getByTestId('auth-toggle').click();
   await login(page, 'artem@shelf.dev');
   await shot('03-workspace');
@@ -106,7 +111,7 @@ try {
   await swagger.waitForSelector('.swagger-ui .opblock', { timeout: 30_000 });
   await swagger.evaluate(() => { document.body.style.zoom = '0.5'; }); // fit the whole endpoint list on the page
   await swagger.waitForTimeout(500);
-  await swagger.screenshot({ path: join(OUT, '17-swagger.png') });
+  await swagger.screenshot({ path: join(OUT, '17-swagger.png'), clip: SWAGGER_CLIP });
   console.log('saved 17-swagger.png');
 } finally {
   await app.close();

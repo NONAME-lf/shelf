@@ -11,8 +11,9 @@ COMMON=(--from markdown+smart+implicit_figures --toc --toc-depth=2 --number-sect
         -V lang=uk --resource-path=".:..:$ROOT/docs/uml/img")
 
 # DOCX takes the vector .svg exports, PDF the raster .png ones; the Markdown
-# therefore names images without an extension.
-pandoc "$BASE.md" "${COMMON[@]}" --default-image-extension=svg -o "$BASE.docx"
+# therefore names images without an extension. native_numbering gives the DOCX captions
+# the same figure numbers as the PDF.
+pandoc "$BASE.md" "${COMMON[@]}" --default-image-extension=svg -t docx+native_numbering -o "$BASE.docx"
 # float + \floatplacement{figure}{H} pin every figure to the spot where it is written,
 # so a figure always stays with the «Пояснення» paragraph next to it; pdflscape provides
 # the \begin{landscape} pages used by the wide diagrams.
