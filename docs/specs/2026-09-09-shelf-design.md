@@ -112,9 +112,9 @@ file list»). Прецедент типу варіанта для діаграм
 | `LocalFolder` | `path`, `boundAt` | `listFiles(): List<LocalFile>`, `isBound(): bool`, `read(name): bytes`, `write(name, bytes, modifiedAt): void` | у десктопі — Node `fs`; у вебі — File System Access API |
 | `LocalFile` | `name`, `path`, `size`, `modifiedAt` | `checksum(): string` | |
 | `SyncSnapshot` | `folderPath`, `syncedAt`, `entries: Map<name, SnapshotEntry>` | `get(name)`, `put(entry)`, `remove(name)` | стан після останньої успішної синхронізації |
-| `SnapshotEntry` | `name`, `localModifiedAt`, `localSize`, `remoteModifiedAt`, `checksum` | — | |
-| `SyncItem` | `name`, `localFile: LocalFile?`, `remoteFile: FileEntry?`, `status: SyncStatus`, `resolution: Side?` | `decideDirection(): Side` | один запис плану на ім'я файлу |
-| `SyncEngine` | `localFolder: LocalFolder`, `workspace: Workspace`, `snapshot: SyncSnapshot`, `items: List<SyncItem>` | `scan(): List<SyncItem>`, `resolve(item: SyncItem, keep: Side): void`, `synchronize(): SyncReport`, `startWatching(): void`, `stopWatching(): void` | спостереження — лише десктоп |
+| `SnapshotEntry` | `name`, `localModifiedAt`, `localSize`, `remoteModifiedAt`, `checksum`, `remoteId?` | — | `remoteId` — `id` серверного файлу, з яким виконано синхронізацію (див. §5.2) |
+| `SyncItem` | `name`, `local: LocalFile?`, `remote: FileEntryDto?`, `status: SyncStatus`, `resolution: Side?` | `decideDirection(item): Side?` — функція планувальника, а не метод | один запис плану на ім'я файлу |
+| `SyncEngine` | `localFolder: LocalFolder`, `workspace: Workspace`, `snapshot: SyncSnapshot`, `items: List<SyncItem>` | `scan(): List<SyncItem>`, `conflicts(): List<SyncItem>`, `resolve(name, keep: Side): void`, `synchronize(onProgress?): SyncReport` | спостереження за папкою — у десктопних `SyncService` / `FolderWatcher` |
 | `SyncReport` | `uploaded`, `downloaded`, `skipped`, `conflicts`, `errors: List<string>` | — | |
 
 Переліки:
@@ -181,7 +181,7 @@ IndexedDB). Кнопка «Synchronize» працює з прив'язаною �
 
 `SyncEngine.scan()` будує `SyncItem` для кожного імені з об'єднання локального списку,
 віддаленого списку і знімка. Порівняння за іменем; підпапки й приховані файли (`.`-префікс)
-ігноруються.
+ігноруються, як і імена, що відрізняються лише регістром або формою Unicode (див. §5.4).
 
 | Локально | Віддалено | Знімок | Умова | Статус |
 |---|---|---|---|---|
@@ -196,28 +196,42 @@ IndexedDB). Кнопка «Synchronize» працює з прив'язаною �
 
 «Змінилося локально» = `localFile.modifiedAt ≠ snapshot.localModifiedAt` або
 `localFile.size ≠ snapshot.localSize`. «Змінилося віддалено» = `remoteFile.modifiedAt ≠
-snapshot.remoteModifiedAt`. Допуск для часу — 2 с.
+snapshot.remoteModifiedAt`. Допуск для часу — 2 с включно; нечитабельний час вважається зміною.
+Запис знімка іншого серверного файлу (`snapshot.remoteId ≠ remoteFile.id` — інший акаунт або
+скинутий сервер) не враховується: файл порівнюється так, ніби знімка немає (рядки з `checksum`).
 
 Видалення не поширюються: файл, відсутній з одного боку, копіюється з іншого. Це задокументоване
 обмеження (див. §1.3).
 
 ### 5.3. Розв'язання конфліктів
 
-`SyncItem.decideDirection()` для `CONFLICT` повертає бік з новішим `modifiedAt` — це вибір за
-замовчуванням. Після `scan()` клієнт показує `ConflictDialog` зі списком усіх конфліктних
-елементів; для кожного користувач обирає `LOCAL` або `REMOTE` (попередньо позначено новіший).
-`resolve(item, keep)` записує вибір, `synchronize()` виконує план. Коли синхронізацію запускає
-спостерігач папки (десктоп, автоматичний режим), діалог не показується — застосовується вибір
-за замовчуванням.
+`decideDirection(item)` для `CONFLICT` без вибору користувача повертає бік з новішим
+`modifiedAt` (за рівного часу — `REMOTE`) — це вибір за замовчуванням. Після `scan()` клієнт
+показує `ConflictDialog` зі списком усіх конфліктних елементів (`conflicts()`); для кожного
+користувач обирає `LOCAL` або `REMOTE` (попередньо позначено новіший). `resolve(name, keep)`
+записує вибір, `synchronize()` виконує план. Коли синхронізацію запускає спостерігач папки
+(десктоп, автоматичний режим), діалог не показується — застосовується вибір за замовчуванням.
 
 ### 5.4. Виконання плану
 
 Для кожного `SyncItem`: `LOCAL_ONLY`, `LOCAL_NEWER`, `CONFLICT/LOCAL` → upload;
 `REMOTE_ONLY`, `REMOTE_NEWER`, `CONFLICT/REMOTE` → download; `IN_SYNC` → skip. Після успішного
-переносу оновлюється `SnapshotEntry`; після download локальному файлу виставляється
-`modifiedAt` віддаленої версії (десктоп) або лише оновлюється знімок (веб). Невдалий перенос
-залишає файл у попередньому стані й додає запис до `SyncReport.errors`. Наприкінці знімок
-зберігається, а `SyncReport` показується користувачу.
+переносу оновлюється `SnapshotEntry` (разом з `remoteId`); після download локальному файлу
+виставляється `modifiedAt` віддаленої версії (десктоп) або лише оновлюється знімок (веб).
+Невдалий перенос залишає файл у попередньому стані й додає запис до `SyncReport.errors`.
+Наприкінці знімок зберігається, а `SyncReport` показується користувачу.
+
+План, побудований раніше окремим викликом `scan()` (наприклад, поки відкрито `ConflictDialog`),
+перед переносом перевіряється знову: обидва боки перелічуються ще раз, і файл, у якого з того
+часу змінився локальний бік (наявність, розмір, `modifiedAt`) або віддалений (наявність, `id`,
+`modifiedAt`), пропускається з помилкою «файл змінився після перевірки — запустіть
+синхронізацію ще раз»; його `SnapshotEntry` не змінюється. Так правка, зроблена під час вибору,
+не перезаписується.
+
+Імена, що відрізняються лише регістром або формою Unicode (`Main.kt` і `main.kt`; NFC і NFD), на
+файлових системах без розрізнення регістру (macOS, Windows) позначають один файл. Такі імена
+(з обох боків разом) до плану не потрапляють: кожне додається до `SyncReport.errors` як
+пропущене, а його `SnapshotEntry` зберігається.
 
 ### 5.5. Стани файлу (діаграма 08)
 
@@ -308,9 +322,9 @@ shelf/
 | `columns.ts` | `ColumnKey`, `ColumnVisibility`, `toggleColumn`, стовпець `name` не приховується |
 | `preview.ts` | `previewKindOf(name): PreviewKind`, `FilePreview`, `TextPreview`, `ImagePreview`, `createPreview` |
 | `fileApiClient.ts` | `FileApiClient`: `register`, `login`, `me`, `listFiles`, `upload`, `download`, `remove` |
-| `sync/fileNames.ts` | `isSafeFileName`, `isSyncableName` (приховані файли не синхронізуються) |
+| `sync/fileNames.ts` | `isSafeFileName`, `isSyncableName` (приховані файли й `__proto__` не синхронізуються), `nameKey`, `collidingNames` (імена, що збігаються без урахування регістру й форми Unicode) |
 | `sync/localFolder.ts` | інтерфейс `LocalFolder` (`listFiles`, `read`, `write`, `checksum` — операція `LocalFile.checksum()` з діаграми класів виконується папкою), `MemoryLocalFolder` для тестів |
-| `sync/snapshot.ts` | `SyncSnapshot`, `SnapshotEntry`, інтерфейс `SnapshotStore { load(), save() }`. На діаграмі послідовності 05 лінія життя `SnapshotStore` позначає знімок разом з його сховищем: `load()` і `save()` належать сховищу, `put(SnapshotEntry)` — знімку. |
+| `sync/snapshot.ts` | `SyncSnapshot`, `SnapshotEntry`, інтерфейс `SnapshotStore { load(), save() }`. На діаграмі послідовності 05 лінія життя `SnapshotStore` позначає знімок разом з його сховищем: `load()` і `save()` належать сховищу, `put(SnapshotEntry)` — знімку. Записи читаються через `getEntry` — лише власні ключі об'єкта. |
 | `sync/syncPlanner.ts` | `computeStatus({local, remote, snapshot, localChecksum}): SyncStatus`, `buildItems`, `defaultSide`, `decideDirection` — чисті функції |
 | `sync/syncEngine.ts` | `SyncEngine` (§3): `scan()`, `conflicts()`, `resolve(name, keep)`, `synchronize(onProgress?)`; приймає `LocalFolder`, `SnapshotStore`, `SyncApi` |
 | `limits.ts` | `MAX_UPLOAD_MB = 50`, `splitBySize` |
