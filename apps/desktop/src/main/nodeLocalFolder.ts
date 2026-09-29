@@ -1,7 +1,7 @@
 import { isSafeFileName, isSyncableName, type LocalFile, type LocalFolder } from '@shelf/shared';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { readdir, readFile, rename, stat, utimes, writeFile } from 'node:fs/promises';
+import { readdir, readFile, rename, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /** LocalFolder over Node fs. A downloaded file gets the server's modification time. */
@@ -23,10 +23,16 @@ export class NodeLocalFolder implements LocalFolder {
 
   async write(name: string, bytes: Uint8Array, modifiedAt: Date): Promise<LocalFile> {
     const target = this.resolve(name);
-    const temp = join(this.path, `.${name}.shelf-part`);
-    await writeFile(temp, bytes);
-    await utimes(temp, modifiedAt, modifiedAt);
-    await rename(temp, target);
+    // fixed-length hidden name: long file names must still fit, and listings and the watcher ignore it
+    const temp = join(this.path, `.shelf-${randomUUID()}.part`);
+    try {
+      await writeFile(temp, bytes);
+      await utimes(temp, modifiedAt, modifiedAt);
+      await rename(temp, target);
+    } catch (error) {
+      await rm(temp, { force: true });
+      throw error;
+    }
     return this.describe(name);
   }
 

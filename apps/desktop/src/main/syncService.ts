@@ -32,6 +32,7 @@ export class SyncService {
   private pending: SyncEngine | null = null;
   private busy = false;
   private rerun = false;
+  private generation = 0;
   private watcher: Closable | null = null;
 
   constructor(private readonly deps: SyncServiceDeps) {}
@@ -39,6 +40,7 @@ export class SyncService {
   async setSession(session: SyncSession | null): Promise<void> {
     this.session = session;
     this.pending = null;
+    this.generation++;
     await this.restartWatcher();
   }
 
@@ -50,6 +52,7 @@ export class SyncService {
   async bindFolder(folderPath: string): Promise<DesktopSettings> {
     const settings = this.deps.settings.update({ folderPath });
     this.pending = null;
+    this.generation++;
     await this.restartWatcher();
     return settings;
   }
@@ -63,10 +66,12 @@ export class SyncService {
   async scan(): Promise<SyncItem[]> {
     this.ensureIdle();
     this.busy = true;
+    const generation = this.generation;
     try {
       const engine = this.createEngine();
       const items = await engine.scan();
-      this.pending = engine;
+      // the folder or the session changed while scanning: this plan belongs to the old one
+      if (generation === this.generation) this.pending = engine;
       return items;
     } finally {
       this.busy = false;
@@ -89,17 +94,19 @@ export class SyncService {
       return { report, syncedAt: this.now().toISOString() };
     } finally {
       this.busy = false;
+      this.runPendingRerun();
     }
   }
 
   cancel(): void {
     this.pending = null;
+    this.runPendingRerun();
   }
 
   async autoSync(): Promise<void> {
-    if (this.pending || !this.session || !this.deps.settings.get().folderPath) return;
-    if (this.busy) {
-      // a change during a running operation: one follow-up run after it finishes
+    if (!this.session || !this.deps.settings.get().folderPath) return;
+    if (this.busy || this.pending) {
+      // a change during a running operation or an open conflict dialog: one follow-up run afterwards
       this.rerun = true;
       return;
     }
@@ -114,10 +121,7 @@ export class SyncService {
       this.busy = false;
     }
     this.deps.send(IPC.syncAuto, event);
-    if (this.rerun) {
-      this.rerun = false;
-      void this.autoSync();
-    }
+    this.runPendingRerun();
   }
 
   async dispose(): Promise<void> {
@@ -133,6 +137,12 @@ export class SyncService {
       snapshotStore: new JsonSnapshotStore(this.deps.snapshotsDir),
       api: this.requireApi(),
     });
+  }
+
+  private runPendingRerun(): void {
+    if (!this.rerun) return;
+    this.rerun = false;
+    void this.autoSync();
   }
 
   private ensureIdle(): void {

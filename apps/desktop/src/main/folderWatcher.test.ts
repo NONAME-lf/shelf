@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,5 +31,22 @@ describe('FolderWatcher', () => {
     await writeFile(join(dir, '.DS_Store'), 'x');
     await new Promise((resolve) => setTimeout(resolve, 1500));
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('settles ready() when closed before it is ready', async () => {
+    watcher = new FolderWatcher(dir, vi.fn(), 150);
+    const ready = watcher.ready();
+    await watcher.close();
+    await expect(ready).resolves.toBeUndefined();
+  });
+
+  it.skipIf(process.platform === 'win32')('settles ready() for a folder that cannot be read', async () => {
+    await chmod(dir, 0o000);
+    try {
+      watcher = new FolderWatcher(dir, vi.fn(), 150);
+      await expect(watcher.ready()).resolves.toBeUndefined();
+    } finally {
+      await chmod(dir, 0o755);
+    }
   });
 });

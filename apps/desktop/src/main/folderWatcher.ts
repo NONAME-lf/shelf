@@ -6,6 +6,7 @@ export class FolderWatcher {
   private readonly watcher: FSWatcher;
   private timer: NodeJS.Timeout | null = null;
   private readonly readyPromise: Promise<void>;
+  private settleReady: () => void = () => undefined;
 
   constructor(
     folderPath: string,
@@ -18,7 +19,12 @@ export class FolderWatcher {
       ignored: (path: string) => path !== folderPath && basename(path).startsWith('.'),
       awaitWriteFinish: { stabilityThreshold: 400, pollInterval: 100 },
     });
-    this.readyPromise = new Promise((resolve) => this.watcher.once('ready', () => resolve()));
+    // ready() must always settle: chokidar drops its listeners on close() and may fail with 'error' before 'ready'
+    this.readyPromise = new Promise((resolve) => {
+      this.settleReady = resolve;
+      this.watcher.once('ready', () => resolve());
+    });
+    this.watcher.on('error', () => this.settleReady());
     this.watcher.on('all', () => this.schedule());
   }
 
@@ -29,6 +35,7 @@ export class FolderWatcher {
   async close(): Promise<void> {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
+    this.settleReady();
     await this.watcher.close();
   }
 

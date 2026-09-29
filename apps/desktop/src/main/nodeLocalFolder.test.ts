@@ -44,4 +44,16 @@ describe('NodeLocalFolder', () => {
   it('refuses names that leave the folder', async () => {
     await expect(new NodeLocalFolder(dir).read('../secret.txt')).rejects.toThrow('secret.txt');
   });
+
+  it('writes a file with a very long name', async () => {
+    const name = `${'a'.repeat(246)}.txt`;
+    await new NodeLocalFolder(dir).write(name, new Uint8Array([1]), new Date());
+    expect(await readdir(dir)).toEqual([name]);
+  });
+
+  it('leaves no temporary file when the write fails', async () => {
+    await mkdir(join(dir, 'taken.txt'));
+    await expect(new NodeLocalFolder(dir).write('taken.txt', new Uint8Array([1]), new Date())).rejects.toThrow();
+    expect(await readdir(dir)).toEqual(['taken.txt']);
+  });
 });

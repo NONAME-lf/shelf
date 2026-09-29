@@ -24,14 +24,15 @@ function setup({ watch = false } = {}) {
   settings.update({ folderPath: folder, watch });
   const api = new FakeApi();
   const sent: [string, unknown][] = [];
-  const watchers: { onChange: () => void; closed: boolean; close: () => Promise<void> }[] = [];
+  const watchers: { path: string; onChange: () => void; closed: boolean; close: () => Promise<void> }[] = [];
   const service = new SyncService({
     settings,
     snapshotsDir: join(root, 'snapshots'),
     send: (channel, payload) => sent.push([channel, payload]),
     createApi: () => api,
-    createWatcher: (_path, onChange) => {
+    createWatcher: (path, onChange) => {
       const watcher = {
+        path,
         onChange,
         closed: false,
         close: async () => {
@@ -102,6 +103,7 @@ describe('SyncService', () => {
     await service.bindFolder(join(root, 'Other'));
     expect(watchers[0].closed).toBe(true);
     expect(watchers).toHaveLength(2);
+    expect(watchers[1].path).toBe(join(root, 'Other'));
     await service.setWatch(false);
     expect(watchers[1].closed).toBe(true);
     expect(watchers).toHaveLength(2);
@@ -123,13 +125,36 @@ describe('SyncService', () => {
   });
 
   it('does not synchronize automatically while a conflict dialog is open', async () => {
-    const { service, sent } = setup({ watch: true });
+    await writeFile(join(folder, 'draft.txt'), 'local');
+    const { service, sent, api } = setup({ watch: true });
     await service.setSession(SESSION);
     await service.scan();
     await service.autoSync();
     expect(sent.filter(([channel]) => channel === IPC.syncAuto)).toHaveLength(0);
+    expect(api.text('draft.txt')).toBeUndefined();
 
+    // cancelling the dialog resumes the automatic run that was held back
     service.cancel();
+    await vi.waitFor(() => expect(sent.filter(([channel]) => channel === IPC.syncAuto)).toHaveLength(1));
+    expect(api.text('draft.txt')).toBe('local');
+  });
+
+  it('runs one follow-up automatic run when a change arrives during an automatic run', async () => {
+    const { service, sent } = setup({ watch: true });
+    await service.setSession(SESSION);
+    const first = service.autoSync();
+    await service.autoSync();
+    await first;
+    await vi.waitFor(() => expect(sent.filter(([channel]) => channel === IPC.syncAuto)).toHaveLength(2));
+  });
+
+  it('does not restore the plan of the previous folder when the folder changes during a scan', async () => {
+    await mkdir(join(root, 'Other'));
+    const { service, sent } = setup();
+    await service.setSession(SESSION);
+    const scanning = service.scan();
+    await service.bindFolder(join(root, 'Other'));
+    await scanning;
     await service.autoSync();
     expect(sent.filter(([channel]) => channel === IPC.syncAuto)).toHaveLength(1);
   });
