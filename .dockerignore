@@ -1,0 +1,11 @@
+.git
+**/node_modules
+**/dist
+**/out
+**/.next
+apps/desktop/release
+docs
+tools/uml-gen
+tools/demo-files
+docker/.env
+apps/api/.env

@@ -7,6 +7,9 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r run typecheck",
+    "stack:up": "docker compose --env-file docker/.env -f docker/compose.yml up -d --build --wait",
+    "seed": "node tools/seed-demo.mjs",
+    "smoke": "bash tools/api-smoke.sh",
     "stack:infra": "docker compose --env-file docker/.env -f docker/compose.yml up -d --wait postgres minio",
     "stack:down": "docker compose --env-file docker/.env -f docker/compose.yml down",
     "stack:reset": "docker compose --env-file docker/.env -f docker/compose.yml down -v"
