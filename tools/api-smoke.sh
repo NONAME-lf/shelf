@@ -16,7 +16,8 @@ expect "$(code "$API/health")" 200 "health"
 TOKEN=$(curl -sf -X POST "$API/auth/register" -H 'Content-Type: application/json' -d "$BODY" | json "['accessToken']")
 echo "ok  register"
 expect "$(code -X POST "$API/auth/register" -H 'Content-Type: application/json' -d "$BODY")" 409 "duplicate register → 409"
-expect "$(code "$API/workspace/files")" 401 "no token → 401"
+expect "$(OUT="$TMP/r401.json" code "$API/workspace/files")" 401 "no token → 401"
+expect "$(json "['message']" < "$TMP/r401.json")" 'Сесія недійсна або завершилась — увійдіть знову' "401 message is Ukrainian"
 AUTH=(-H "Authorization: Bearer $TOKEN")
 
 printf 'fun main() = println("v1")\n' > "$TMP/Main.kt"
@@ -40,8 +41,10 @@ CONTENT_TYPE=$(curl -s -D - -o /dev/null "${AUTH[@]}" "$API/workspace/files/$ID/
 case "$CONTENT_TYPE" in *text/plain*) echo "ok  .kt is served as text/plain";; *) echo "FAIL: $CONTENT_TYPE"; exit 1;; esac
 
 dd if=/dev/zero of="$TMP/big.bin" bs=1048576 count=51 2>/dev/null
-expect "$(code "${AUTH[@]}" -F "file=@$TMP/big.bin" "$API/workspace/files")" 413 "51 MB → 413"
-expect "$(code "${AUTH[@]}" "$API/workspace/files/not-a-uuid")" 400 "malformed id → 400"
+expect "$(OUT="$TMP/r413.json" code "${AUTH[@]}" -F "file=@$TMP/big.bin" "$API/workspace/files")" 413 "51 MB → 413"
+expect "$(json "['message']" < "$TMP/r413.json")" 'Файл більший за 50 МБ' "413 message is Ukrainian"
+expect "$(OUT="$TMP/r404.json" code "${AUTH[@]}" "$API/workspace/files/not-a-uuid")" 404 "malformed id → 404"
+expect "$(json "['message']" < "$TMP/r404.json")" 'Файл не знайдено' "malformed id message is Ukrainian"
 expect "$(code "${AUTH[@]}" -X DELETE "$API/workspace/files/$ID")" 204 "delete → 204"
 expect "$(code "${AUTH[@]}" "$API/workspace/files/$ID")" 404 "deleted file → 404"
 echo "api-smoke: OK"
