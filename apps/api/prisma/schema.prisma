@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  displayName  String
+  passwordHash String
+  createdAt    DateTime    @default(now())
+  workspace    Workspace?
+  uploaded     FileEntry[] @relation("UploadedBy")
+  edited       FileEntry[] @relation("EditedBy")
+}
+
+model Workspace {
+  id        String      @id @default(uuid())
+  ownerId   String      @unique
+  owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+  files     FileEntry[]
+}
+
+model FileEntry {
+  id           String    @id @default(uuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name         String
+  extension    String
+  size         Int
+  checksum     String
+  storageKey   String    @unique
+  createdAt    DateTime  @default(now())
+  modifiedAt   DateTime  @default(now())
+  uploadedById String
+  uploadedBy   User      @relation("UploadedBy", fields: [uploadedById], references: [id])
+  editedById   String
+  editedBy     User      @relation("EditedBy", fields: [editedById], references: [id])
+
+  @@unique([workspaceId, name])
+}

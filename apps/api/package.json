@@ -1,0 +1,51 @@
+{
+  "name": "@shelf/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "prisma generate && nest build",
+    "start": "node dist/main.js",
+    "start:local": "nest build && node --env-file=.env dist/main.js",
+    "test": "prisma generate && jest",
+    "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit",
+    "db:migrate": "prisma migrate deploy"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1142.0",
+    "@nestjs/common": "^11.2.6",
+    "@nestjs/core": "^11.2.6",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.2.6",
+    "@nestjs/swagger": "^11.4.7",
+    "@prisma/client": "6.19.3",
+    "@shelf/shared": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.24",
+    "@nestjs/testing": "^11.2.6",
+    "@types/express": "^5.0.3",
+    "@types/jest": "^30.0.0",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.20.4",
+    "@types/passport-jwt": "^4.0.1",
+    "jest": "^30.5.2",
+    "prisma": "6.19.3",
+    "ts-jest": "^29.4.14",
+    "typescript": "~5.9.3"
+  },
+  "jest": {
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": { "^.+\\.ts$": "ts-jest" },
+    "testEnvironment": "node"
+  }
+}
