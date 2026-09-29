@@ -15,11 +15,13 @@ export function SyncReportView({ report, syncedAt, compact }: { report: SyncRepo
       className={cn('rounded-md text-sm', compact ? 'bg-ink-3/50 p-2 text-paper/90' : 'border border-line bg-white p-3')}
     >
       {syncedAt ? <div className="mb-1 text-xs opacity-70">Остання синхронізація: {formatDateTime(syncedAt)}</div> : null}
-      <ul className="grid grid-cols-2 gap-x-2 gap-y-1">
+      <ul className={cn('grid gap-x-2 gap-y-1', compact ? 'grid-cols-1' : 'grid-cols-2')}>
         {rows.map(({ label, value, Icon }) => (
           <li key={label} className="flex items-center gap-1.5">
             <Icon size={14} className="shrink-0 opacity-80" />
-            {label}: <b>{value}</b>
+            <span>
+              {label}: <b>{value}</b>
+            </span>
           </li>
         ))}
       </ul>

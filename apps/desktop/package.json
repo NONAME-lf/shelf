@@ -6,7 +6,15 @@
   "author": "Artemii Mekshakov",
   "main": "./out/main/index.js",
   "scripts": {
-    "test": "vitest run"
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
+    "test": "vitest run",
+    "smoke": "electron-vite build && node scripts/smoke.mjs",
+    "screenshots": "electron-vite build && node scripts/screenshots.mjs",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:win": "electron-vite build && electron-builder --win"
   },
   "dependencies": {
     "@shelf/shared": "workspace:*",

@@ -40,12 +40,12 @@ export function SyncPanel(props: SyncPanelProps) {
         <p className="text-paper/70">{unsupportedReason}</p>
       ) : (
         <>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={onChooseFolder} disabled={busy !== 'idle'}>
               {folderPath ? 'Змінити' : 'Обрати папку'}
             </Button>
-            <Button size="sm" variant="primary" onClick={onSync} disabled={busy !== 'idle'} data-testid="sync-run" className="flex-1">
-              <RefreshCw size={14} className={cn(busy !== 'idle' && 'animate-spin')} /> Синхронізувати
+            <Button size="sm" variant="primary" onClick={onSync} disabled={busy !== 'idle'} data-testid="sync-run" className="min-w-0 flex-1">
+              <RefreshCw size={14} className={cn('shrink-0', busy !== 'idle' && 'animate-spin')} /> Синхронізувати
             </Button>
           </div>
 
@@ -55,7 +55,7 @@ export function SyncPanel(props: SyncPanelProps) {
                 type="checkbox"
                 className="accent-brass"
                 checked={watch.enabled}
-                disabled={!folderPath}
+                disabled={!folderPath || busy !== 'idle'}
                 onChange={(event) => watch.onChange(event.target.checked)}
                 data-testid="sync-watch"
               />
