@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Post,
   Res,
   StreamableFile,
@@ -21,12 +20,13 @@ import type { Response } from 'express';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthUser } from '../auth/jwt.strategy';
+import { createFileIdPipe } from '../http-setup';
 import { WorkspaceService } from '../workspace/workspace.service';
 import { contentDisposition, contentTypeFor, decodeUploadName } from './content-type';
 import { toFileEntryDto } from './file-entry.mapper';
 import { FilesService } from './files.service';
 
-const FileId = () => Param('id', new ParseUUIDPipe({ version: '4' }));
+const FileId = () => Param('id', createFileIdPipe());
 
 @ApiTags('files')
 @ApiBearerAuth()

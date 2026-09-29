@@ -5,19 +5,19 @@ import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-valid
 export class RegisterBody implements RegisterDto {
   @ApiProperty({ example: 'artem@shelf.dev' })
   @IsEmail({}, { message: 'Некоректний email' })
-  @MaxLength(254)
+  @MaxLength(254, { message: 'Email задовгий (найбільше 254 символи)' })
   email: string;
 
   @ApiProperty({ minLength: 8, example: 'shelf-demo-2026' })
-  @IsString()
+  @IsString({ message: 'Пароль має бути рядком' })
   @MinLength(8, { message: 'Пароль має містити щонайменше 8 символів' })
-  @MaxLength(72)
+  @MaxLength(72, { message: 'Пароль задовгий (найбільше 72 символи)' })
   password: string;
 
   @ApiProperty({ example: 'Артем' })
-  @IsString()
+  @IsString({ message: "Ім'я має бути рядком" })
   @IsNotEmpty({ message: "Ім'я не може бути порожнім" })
-  @MaxLength(60)
+  @MaxLength(60, { message: "Ім'я задовге (найбільше 60 символів)" })
   displayName: string;
 }
 
@@ -27,7 +27,7 @@ export class LoginBody implements LoginDto {
   email: string;
 
   @ApiProperty({ example: 'shelf-demo-2026' })
-  @IsString()
+  @IsString({ message: 'Пароль має бути рядком' })
   @IsNotEmpty({ message: 'Введіть пароль' })
   password: string;
 }

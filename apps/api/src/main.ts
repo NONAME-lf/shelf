@@ -1,16 +1,16 @@
 import 'reflect-metadata';
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { APP_CONFIG, type AppConfig } from './config/config';
+import { configureHttp } from './http-setup';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = app.get<AppConfig>(APP_CONFIG);
 
   app.setGlobalPrefix('api');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+  configureHttp(app);
   app.enableCors({
     origin: config.corsOrigins === '*' ? true : config.corsOrigins,
     exposedHeaders: ['Content-Disposition'],
