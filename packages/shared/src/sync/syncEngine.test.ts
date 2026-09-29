@@ -10,6 +10,7 @@ import { MemorySnapshotStore } from './snapshot';
 import { SyncEngine, type SyncApi } from './syncEngine';
 
 const MINUTE = 60_000;
+const FOLDER = '/home/artem/shelf';
 
 /** An in-memory server with the same "same name = new version" rule as the real API. */
 class FakeServer implements SyncApi {
@@ -76,7 +77,7 @@ const statuses = (items: { name: string; status: SyncStatus }[]) =>
 
 beforeEach(() => {
   server = new FakeServer();
-  folder = new MemoryLocalFolder({ path: '/home/artem/shelf' });
+  folder = new MemoryLocalFolder({ path: FOLDER });
   store = new MemorySnapshotStore();
 });
 
@@ -95,7 +96,7 @@ describe('SyncEngine', () => {
     const written = (await folder.listFiles()).find((file) => file.name === 'photo.jpg');
     expect(written?.modifiedAt).toBe(Date.parse(photo.modifiedAt));
 
-    const snapshot = store.peek('/home/artem/shelf');
+    const snapshot = store.peek(FOLDER);
     expect(Object.keys(snapshot?.entries ?? {}).sort()).toEqual(['Main.kt', 'photo.jpg']);
     expect(snapshot?.syncedAt).not.toBeNull();
   });
@@ -164,7 +165,7 @@ describe('SyncEngine', () => {
     const sync = engine();
     expect(statuses(await sync.scan())).toEqual({ 'different.txt': SyncStatus.CONFLICT, 'same.txt': SyncStatus.IN_SYNC });
     await sync.synchronize();
-    expect(store.peek('/home/artem/shelf')?.entries['same.txt']).toBeDefined();
+    expect(store.peek(FOLDER)?.entries['same.txt']).toBeDefined();
   });
 
   it('isolates a failed transfer', async () => {
@@ -175,7 +176,7 @@ describe('SyncEngine', () => {
     const report = await engine().synchronize();
     expect(report.uploaded).toBe(1);
     expect(report.errors).toEqual(['b.txt: network down']);
-    expect(Object.keys(store.peek('/home/artem/shelf')?.entries ?? {})).toEqual(['a.txt']);
+    expect(Object.keys(store.peek(FOLDER)?.entries ?? {})).toEqual(['a.txt']);
 
     server.failUploadFor.clear();
     const retry = engine();
@@ -233,5 +234,66 @@ describe('SyncEngine', () => {
     const progress: string[] = [];
     await engine().synchronize((p) => progress.push(`${p.done}/${p.total} ${p.name}`));
     expect(progress).toEqual(['1/2 a.txt', '2/2 b.txt']);
+  });
+});
+
+describe('SyncEngine — the plan is re-checked before transfer', () => {
+  const changedAfterScan = (name: string) => `«${name}»: файл змінився після перевірки — запустіть синхронізацію ще раз`;
+
+  it('does not download over a local edit made after the scan', async () => {
+    folder.setFile('todo.txt', 'v1', T0);
+    await engine().synchronize();
+    await server.put('todo.txt', 'server edit');
+
+    const sync = engine();
+    expect(statuses(await sync.scan())).toEqual({ 'todo.txt': SyncStatus.REMOTE_NEWER });
+    const entryBefore = structuredClone(store.peek(FOLDER)?.entries['todo.txt']);
+    folder.setFile('todo.txt', 'edited while the dialog was open', T0 + 90 * MINUTE);
+
+    const report = await sync.synchronize();
+    expect(report).toMatchObject({ downloaded: 0, errors: [changedAfterScan('todo.txt')] });
+    expect(folder.text('todo.txt')).toBe('edited while the dialog was open');
+    expect(store.peek(FOLDER)?.entries['todo.txt']).toEqual(entryBefore);
+    expect(statuses(await engine().scan())).toEqual({ 'todo.txt': SyncStatus.CONFLICT });
+  });
+
+  it('does not download over a file created locally after the scan', async () => {
+    await server.put('photo.jpg', 'server photo');
+
+    const sync = engine();
+    expect(statuses(await sync.scan())).toEqual({ 'photo.jpg': SyncStatus.REMOTE_ONLY });
+    folder.setFile('photo.jpg', 'my own photo', T0 + 90 * MINUTE);
+
+    const report = await sync.synchronize();
+    expect(report).toMatchObject({ downloaded: 0, errors: [changedAfterScan('photo.jpg')] });
+    expect(folder.text('photo.jpg')).toBe('my own photo');
+    expect(store.peek(FOLDER)?.entries['photo.jpg']).toBeUndefined();
+  });
+
+  it('does not upload over a server edit made after the scan', async () => {
+    folder.setFile('Main.kt', 'v1', T0);
+    await engine().synchronize();
+    folder.setFile('Main.kt', 'v2 — changed locally', T0 + 5 * MINUTE);
+
+    const sync = engine();
+    expect(statuses(await sync.scan())).toEqual({ 'Main.kt': SyncStatus.LOCAL_NEWER });
+    await server.put('Main.kt', 'server edit');
+
+    const report = await sync.synchronize();
+    expect(report).toMatchObject({ uploaded: 0, errors: [changedAfterScan('Main.kt')] });
+    expect(server.text('Main.kt')).toBe('server edit');
+  });
+
+  it('still transfers the files that did not change', async () => {
+    folder.setFile('a.txt', 'a', T0);
+    await server.put('b.txt', 'b');
+
+    const sync = engine();
+    await sync.scan();
+    folder.setFile('a.txt', 'a, edited', T0 + 90 * MINUTE);
+
+    const report = await sync.synchronize();
+    expect(report).toMatchObject({ uploaded: 0, downloaded: 1, errors: [changedAfterScan('a.txt')] });
+    expect(folder.text('b.txt')).toBe('b');
   });
 });
