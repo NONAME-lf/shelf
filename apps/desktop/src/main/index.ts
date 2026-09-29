@@ -32,26 +32,52 @@ function createWindow(): BrowserWindow {
   return window;
 }
 
-void app.whenReady().then(() => {
-  const userData = app.getPath('userData');
-  const settings = new SettingsStore(join(userData, 'settings.json'));
-  const window = createWindow();
-  const sync = new SyncService({
-    settings,
-    snapshotsDir: join(userData, 'snapshots'),
-    send: (channel, payload) => {
-      // the window may already be gone when a background run finishes
-      if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send(channel, payload);
-    },
-  });
-  const transfers = new FileTransfers(() => sync.requireApi(), join(app.getPath('temp'), 'shelf-drag'));
-  const disposeIpc = registerIpc(window, { settings, sync, transfers, dragIcon: nativeImage.createFromPath(dragIconPath) });
+function start(): void {
+  let window: BrowserWindow | null = null;
 
-  window.on('closed', () => {
-    disposeIpc();
-    void sync.dispose();
-    void transfers.cleanup();
+  // a second launch brings the running window forward instead of opening another copy
+  app.on('second-instance', () => {
+    if (!window || window.isDestroyed()) return;
+    if (window.isMinimized()) window.restore();
+    window.show();
+    window.focus();
   });
-});
 
-app.on('window-all-closed', () => app.quit());
+  void app.whenReady().then(() => {
+    const userData = app.getPath('userData');
+    const settings = new SettingsStore(join(userData, 'settings.json'));
+    const mainWindow = createWindow();
+    window = mainWindow;
+    const sync = new SyncService({
+      settings,
+      snapshotsDir: join(userData, 'snapshots'),
+      send: (channel, payload) => {
+        // the window may already be gone when a background run finishes
+        if (!mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(channel, payload);
+      },
+    });
+    const transfers = new FileTransfers(() => sync.requireApi(), join(app.getPath('temp'), 'shelf-drag'));
+    const disposeIpc = registerIpc(mainWindow, { settings, sync, transfers, dragIcon: nativeImage.createFromPath(dragIconPath) });
+    mainWindow.on('closed', disposeIpc);
+
+    // The watcher and the drag-out temp files are cleaned up before the process exits: the first
+    // will-quit is held until the cleanup is done, then quitting resumes and passes through.
+    let cleanup: 'pending' | 'running' | 'done' = 'pending';
+    app.on('will-quit', (event) => {
+      if (cleanup === 'done') return;
+      event.preventDefault();
+      if (cleanup === 'running') return;
+      cleanup = 'running';
+      void Promise.allSettled([sync.dispose(), transfers.cleanup()]).then(() => {
+        cleanup = 'done';
+        app.quit();
+      });
+    });
+  });
+
+  app.on('window-all-closed', () => app.quit());
+}
+
+// One copy per profile: two copies would watch and synchronize the same folder at once.
+if (app.requestSingleInstanceLock()) start();
+else app.quit();
