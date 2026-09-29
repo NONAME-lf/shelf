@@ -297,3 +297,53 @@ describe('SyncEngine — the plan is re-checked before transfer', () => {
     expect(folder.text('b.txt')).toBe('b');
   });
 });
+
+describe('SyncEngine — names that differ only in letter case', () => {
+  const collision = (name: string) => `«${name}»: назви відрізняються лише регістром — пропущено`;
+
+  it('leaves such names out of the plan and reports each of them', async () => {
+    folder.setFile('Main.kt', 'local', T0);
+    folder.setFile('notes.txt', 'notes', T0);
+    await server.put('main.kt', 'server');
+
+    const sync = engine();
+    expect(statuses(await sync.scan())).toEqual({ 'notes.txt': SyncStatus.LOCAL_ONLY });
+    const report = await sync.synchronize();
+    expect(report).toMatchObject({ uploaded: 1, downloaded: 0 });
+    expect(report.errors).toEqual([collision('Main.kt'), collision('main.kt')]);
+    expect(server.text('Main.kt')).toBeUndefined();
+    expect(folder.has('main.kt')).toBe(false);
+  });
+
+  it('does not download two server files that would be one file locally', async () => {
+    await server.put('Report.txt', 'first');
+    await server.put('report.txt', 'second');
+
+    const report = await engine().synchronize();
+    expect(report).toMatchObject({ downloaded: 0, errors: [collision('Report.txt'), collision('report.txt')] });
+    expect(folder.has('Report.txt') || folder.has('report.txt')).toBe(false);
+  });
+
+  it('keeps the snapshot entry of a skipped name', async () => {
+    folder.setFile('Main.kt', 'v1', T0);
+    await engine().synchronize();
+    const entryBefore = structuredClone(store.peek(FOLDER)?.entries['Main.kt']);
+    await server.put('main.kt', 'someone else');
+
+    await engine().synchronize();
+    expect(store.peek(FOLDER)?.entries['Main.kt']).toEqual(entryBefore);
+  });
+
+  it('does not download a name whose case variant was created locally after the scan', async () => {
+    await server.put('Main.kt', 'server');
+
+    const sync = engine();
+    expect(statuses(await sync.scan())).toEqual({ 'Main.kt': SyncStatus.REMOTE_ONLY });
+    folder.setFile('main.kt', 'created while the dialog was open', T0 + 90 * MINUTE);
+
+    const report = await sync.synchronize();
+    expect(report).toMatchObject({ downloaded: 0 });
+    expect(report.errors).toEqual(['«Main.kt»: файл змінився після перевірки — запустіть синхронізацію ще раз']);
+    expect(folder.has('Main.kt')).toBe(false);
+  });
+});

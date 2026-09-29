@@ -1,7 +1,7 @@
 import type { FileApiClient } from '../fileApiClient';
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from '../limits';
 import { Side, SyncStatus, type FileEntryDto, type LocalFile } from '../types';
-import { isSyncableName } from './fileNames';
+import { collidingNames, isSyncableName } from './fileNames';
 import type { LocalFolder } from './localFolder';
 import { putEntry, removeEntry, type SnapshotStore, type SyncSnapshot } from './snapshot';
 import { buildItems, decideDirection, needsChecksum, type SyncItem } from './syncPlanner';
@@ -22,6 +22,8 @@ export type SyncEngineDeps = {
 /** Platform-independent synchronization of one local folder with the user's workspace (spec §5). */
 export class SyncEngine {
   private items: SyncItem[] = [];
+  /** Names left out of the plan: they differ from another name only in letter case or Unicode form. */
+  private colliding: string[] = [];
   private snapshot: SyncSnapshot | null = null;
 
   constructor(private readonly deps: SyncEngineDeps) {}
@@ -34,8 +36,12 @@ export class SyncEngine {
       localFolder.listFiles(),
       api.listFiles(),
     ]);
-    const localFiles = local.filter((file) => isSyncableName(file.name));
-    const remoteByName = new Map(remote.map((file) => [file.name, file]));
+    const syncableLocal = local.filter((file) => isSyncableName(file.name));
+    const syncableRemote = remote.filter((file) => isSyncableName(file.name));
+    const colliding = collidingNames([...syncableLocal, ...syncableRemote].map((file) => file.name));
+    const localFiles = syncableLocal.filter((file) => !colliding.has(file.name));
+    const remoteFiles = syncableRemote.filter((file) => !colliding.has(file.name));
+    const remoteByName = new Map(remoteFiles.map((file) => [file.name, file]));
 
     const checksums: Record<string, string> = {};
     for (const file of localFiles) {
@@ -44,7 +50,8 @@ export class SyncEngine {
     }
 
     this.snapshot = snapshot;
-    this.items = buildItems(localFiles, remote, snapshot, checksums);
+    this.colliding = [...colliding].sort();
+    this.items = buildItems(localFiles, remoteFiles, snapshot, checksums);
     return this.items.map((item) => ({ ...item }));
   }
 
@@ -69,7 +76,8 @@ export class SyncEngine {
     if (!planned) await this.scan();
     const snapshot = this.snapshot as SyncSnapshot;
     const changed = planned ? await this.changedSinceScan() : new Set<string>();
-    const report: SyncReport = { uploaded: 0, downloaded: 0, skipped: 0, conflicts: 0, errors: [] };
+    const errors = this.colliding.map((name) => `«${name}»: назви відрізняються лише регістром — пропущено`);
+    const report: SyncReport = { uploaded: 0, downloaded: 0, skipped: 0, conflicts: 0, errors };
     const total = this.items.length;
     let done = 0;
 
@@ -83,12 +91,13 @@ export class SyncEngine {
       onProgress?.({ done, total, name: item.name });
     }
 
-    const present = new Set(this.items.map((item) => item.name));
+    const present = new Set([...this.items.map((item) => item.name), ...this.colliding]);
     for (const name of Object.keys(snapshot.entries)) if (!present.has(name)) removeEntry(snapshot, name);
     snapshot.syncedAt = (this.deps.now ?? (() => new Date()))().toISOString();
     await this.deps.snapshotStore.save(snapshot);
 
     this.items = [];
+    this.colliding = [];
     this.snapshot = null;
     return report;
   }
@@ -98,11 +107,12 @@ export class SyncEngine {
     const [local, remote] = await Promise.all([this.deps.localFolder.listFiles(), this.deps.api.listFiles()]);
     const localByName = new Map(local.map((file) => [file.name, file]));
     const remoteByName = new Map(remote.map((file) => [file.name, file]));
+    const colliding = collidingNames([...localByName.keys(), ...remoteByName.keys()]);
     const changed = new Set<string>();
     for (const item of this.items) {
       const sameLocal = sameLocalFile(item.local, localByName.get(item.name));
       const sameRemote = sameRemoteFile(item.remote, remoteByName.get(item.name));
-      if (!sameLocal || !sameRemote) changed.add(item.name);
+      if (!sameLocal || !sameRemote || colliding.has(item.name)) changed.add(item.name);
     }
     return changed;
   }
