@@ -1,3 +1,5 @@
+'use client';
+
 import { formatDateTime, formatSize, type FileEntryDto, type PreviewResult } from '@shelf/shared';
 import { Download } from 'lucide-react';
 import { Button } from './Button';

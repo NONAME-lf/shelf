@@ -1,3 +1,5 @@
+'use client';
+
 import { SortDirection, toggleDirection } from '@shelf/shared';
 import { ArrowDownAZ, ArrowDownZA } from 'lucide-react';
 

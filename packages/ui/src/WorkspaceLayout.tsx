@@ -1,3 +1,5 @@
+'use client';
+
 import type { UserDto } from '@shelf/shared';
 import { Library, LogOut } from 'lucide-react';
 import type { ReactNode } from 'react';

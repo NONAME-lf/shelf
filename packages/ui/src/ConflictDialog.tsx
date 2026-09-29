@@ -1,3 +1,5 @@
+'use client';
+
 import { defaultSide, formatDateTime, formatSize, Side, type SyncItem } from '@shelf/shared';
 import { useEffect, useState } from 'react';
 import { Button } from './Button';

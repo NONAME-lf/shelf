@@ -1,3 +1,5 @@
+'use client';
+
 import { TypeFilter } from '@shelf/shared';
 import { cn } from './cn';
 

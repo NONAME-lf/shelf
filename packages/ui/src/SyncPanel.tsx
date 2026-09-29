@@ -1,3 +1,5 @@
+'use client';
+
 import type { SyncReport } from '@shelf/shared';
 import { FolderSync, RefreshCw } from 'lucide-react';
 import { Button } from './Button';

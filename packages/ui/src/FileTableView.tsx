@@ -1,3 +1,5 @@
+'use client';
+
 import {
   COLUMN_LABELS,
   formatDateTime,

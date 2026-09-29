@@ -1,3 +1,5 @@
+'use client';
+
 import { COLUMN_KEYS, COLUMN_LABELS, type ColumnKey, type ColumnVisibility } from '@shelf/shared';
 
 /** Show / hide every column except the name (UC7). Styled for the dark sidebar. */
