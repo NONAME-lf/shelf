@@ -32,7 +32,10 @@ export class SyncService {
   private session: SyncSession | null = null;
   private account: string | null = null;
   private pending: SyncEngine | null = null;
-  private busy = false;
+  /** A manual scan or run is in progress; there is at most one at a time. */
+  private manual = false;
+  /** The automatic run in progress; a manual operation waits for it. */
+  private automatic: Promise<void> | null = null;
   private rerun = false;
   private generation = 0;
   private watcher: Closable | null = null;
@@ -75,24 +78,24 @@ export class SyncService {
   }
 
   async scan(): Promise<SyncItem[]> {
-    this.ensureIdle();
-    this.busy = true;
-    const generation = this.generation;
+    this.beginManual();
     try {
+      const generation = this.generation;
       const engine = this.createEngine();
+      await this.automaticRunFinished();
       const items = await engine.scan();
-      // the folder or the session changed while scanning: this plan belongs to the old one
+      // the folder or the session changed meanwhile: this plan belongs to the old one
       if (generation === this.generation) this.pending = engine;
       return items;
     } finally {
-      this.busy = false;
+      this.manual = false;
     }
   }
 
   async run(resolutions: Record<string, Side>): Promise<SyncRunResult> {
-    this.ensureIdle();
-    this.busy = true;
+    this.beginManual();
     try {
+      await this.automaticRunFinished();
       let engine = this.pending;
       this.pending = null;
       if (!engine) {
@@ -104,7 +107,7 @@ export class SyncService {
       const report = await engine.synchronize((progress) => this.deps.send(IPC.syncProgress, progress));
       return { report, syncedAt: this.now().toISOString() };
     } finally {
-      this.busy = false;
+      this.manual = false;
       this.runPendingRerun();
     }
   }
@@ -114,27 +117,18 @@ export class SyncService {
     this.runPendingRerun();
   }
 
-  async autoSync(): Promise<void> {
-    if (!this.binding().folderPath) return;
-    if (this.busy || this.pending) {
+  autoSync(): Promise<void> {
+    if (!this.binding().folderPath) return Promise.resolve();
+    if (this.manual || this.automatic || this.pending) {
       // a change during a running operation or an open conflict dialog: one follow-up run afterwards
       this.rerun = true;
-      return;
+      return Promise.resolve();
     }
-    this.busy = true;
-    const generation = this.generation;
-    let event: AutoSyncEvent;
-    try {
-      const report = await this.createEngine().synchronize();
-      event = { report, error: null, syncedAt: this.now().toISOString() };
-    } catch (error) {
-      event = { report: null, error: messageOf(error), syncedAt: this.now().toISOString() };
-    } finally {
-      this.busy = false;
-    }
-    // after a logout or a folder change the window shows another account or folder
-    if (generation === this.generation) this.deps.send(IPC.syncAuto, event);
-    this.runPendingRerun();
+    this.automatic = this.synchronizeAutomatically().finally(() => {
+      this.automatic = null;
+      this.runPendingRerun();
+    });
+    return this.automatic;
   }
 
   async dispose(): Promise<void> {
@@ -144,6 +138,19 @@ export class SyncService {
 
   private binding(): FolderBinding {
     return this.account ? this.deps.settings.binding(this.account) : { ...NO_BINDING };
+  }
+
+  private async synchronizeAutomatically(): Promise<void> {
+    const generation = this.generation;
+    let event: AutoSyncEvent;
+    try {
+      const report = await this.createEngine().synchronize();
+      event = { report, error: null, syncedAt: this.now().toISOString() };
+    } catch (error) {
+      event = { report: null, error: messageOf(error), syncedAt: this.now().toISOString() };
+    }
+    // after a logout or a folder change the window shows another account or folder
+    if (generation === this.generation) this.deps.send(IPC.syncAuto, event);
   }
 
   private requireAccount(): string {
@@ -168,8 +175,14 @@ export class SyncService {
     void this.autoSync();
   }
 
-  private ensureIdle(): void {
-    if (this.busy) throw new Error('Синхронізація вже виконується');
+  private beginManual(): void {
+    if (this.manual) throw new Error('Синхронізація вже виконується');
+    this.manual = true;
+  }
+
+  /** «Синхронізувати» pressed during an automatic run waits for that run instead of failing. */
+  private async automaticRunFinished(): Promise<void> {
+    while (this.automatic) await this.automatic;
   }
 
   private now(): Date {
@@ -182,7 +195,10 @@ export class SyncService {
     const { watch, folderPath } = this.binding();
     if (!watch || !folderPath) return;
     const create = this.deps.createWatcher ?? ((path: string, onChange: () => void) => new FolderWatcher(path, onChange));
-    this.watcher = create(folderPath, () => void this.autoSync());
-    await this.watcher.ready?.();
+    const watcher = create(folderPath, () => void this.autoSync());
+    this.watcher = watcher;
+    await watcher.ready?.();
+    // chokidar reports only later changes: what already differs is synchronized once now
+    if (this.watcher === watcher) void this.autoSync();
   }
 }
