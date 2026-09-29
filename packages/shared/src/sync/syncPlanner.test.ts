@@ -74,6 +74,26 @@ describe('computeStatus — таблиця статусів §5.2', () => {
   });
 });
 
+describe('computeStatus — a snapshot entry of a different server file', () => {
+  const local = localFile('Main.kt');
+  const snapshot = snapshotEntry({ remoteId: 'srv-old' });
+  const unrelated = fileEntry('Main.kt', { id: 'srv-new', modifiedAt: iso(T0 + MINUTE) });
+
+  it('is ignored: the checksum decides, as on a first synchronization', () => {
+    expect(needsChecksum({ local, remote: unrelated, snapshot })).toBe(true);
+    expect(computeStatus({ local, remote: unrelated, snapshot, localChecksum: unrelated.checksum })).toBe(SyncStatus.IN_SYNC);
+    expect(computeStatus({ local, remote: unrelated, snapshot, localChecksum: 'd'.repeat(64) })).toBe(SyncStatus.CONFLICT);
+    expect(() => computeStatus({ local, remote: unrelated, snapshot })).toThrow('Main.kt');
+  });
+
+  it('is trusted when it names the same server file, or no server file at all', () => {
+    const sameFile = fileEntry('Main.kt', { id: 'srv-old', modifiedAt: iso(T0 + MINUTE) });
+    expect(needsChecksum({ local, remote: sameFile, snapshot })).toBe(false);
+    expect(computeStatus({ local, remote: sameFile, snapshot })).toBe(SyncStatus.REMOTE_NEWER);
+    expect(computeStatus({ local, remote: unrelated, snapshot: snapshotEntry() })).toBe(SyncStatus.REMOTE_NEWER);
+  });
+});
+
 describe('conflict side', () => {
   const conflict = (localTime: number, remoteTime: number, resolution?: Side): SyncItem => ({
     name: 'Main.kt',

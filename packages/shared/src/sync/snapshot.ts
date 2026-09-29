@@ -5,6 +5,8 @@ export type SnapshotEntry = {
   localSize: number;
   remoteModifiedAt: string;
   checksum: string;
+  /** `FileEntryDto.id` of the server file it was synced with; absent in entries recorded before it existed. */
+  remoteId?: string;
 };
 
 /** The state after the last successful synchronization of one folder. */

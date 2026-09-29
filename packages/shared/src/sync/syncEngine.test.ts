@@ -347,3 +347,27 @@ describe('SyncEngine — names that differ only in letter case', () => {
     expect(folder.has('Main.kt')).toBe(false);
   });
 });
+
+describe('SyncEngine — a snapshot entry belongs to one server file', () => {
+  it('records the server file id after an upload, a download and an in-sync check', async () => {
+    folder.setFile('Main.kt', 'uploaded', T0);
+    const photo = await server.put('photo.jpg', 'downloaded');
+    folder.setFile('same.txt', 'identical', T0);
+    const same = await server.put('same.txt', 'identical');
+
+    await engine().synchronize();
+    const entries = store.peek(FOLDER)?.entries ?? {};
+    expect(entries['Main.kt']?.remoteId).toBe(server.files.get('Main.kt')?.entry.id);
+    expect(entries['photo.jpg']?.remoteId).toBe(photo.id);
+    expect(entries['same.txt']?.remoteId).toBe(same.id);
+  });
+
+  it('treats a different server file under a known name as a conflict, not as a newer version', async () => {
+    folder.setFile('todo.txt', 'mine', T0);
+    await engine().synchronize();
+    server.delete('todo.txt');
+    await server.put('todo.txt', 'a file of another account');
+
+    expect(statuses(await engine().scan())).toEqual({ 'todo.txt': SyncStatus.CONFLICT });
+  });
+});

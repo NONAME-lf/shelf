@@ -22,15 +22,24 @@ export type StatusInput = {
   localChecksum?: string;
 };
 
+/**
+ * A snapshot entry of a different server file (another account, a reset server) says nothing
+ * about this one — the file is compared as if there were no snapshot.
+ */
+function trustedSnapshot({ remote, snapshot }: StatusInput): SnapshotEntry | undefined {
+  return snapshot?.remoteId && remote && snapshot.remoteId !== remote.id ? undefined : snapshot;
+}
+
 export function needsChecksum(input: StatusInput): boolean {
-  return Boolean(input.local && input.remote && !input.snapshot);
+  return Boolean(input.local && input.remote && !trustedSnapshot(input));
 }
 
 const differs = (a: number, b: number) => Math.abs(a - b) > TIME_TOLERANCE_MS;
 
 /** Spec §5.2: compares both sides with the snapshot taken after the last synchronization. */
 export function computeStatus(input: StatusInput): SyncStatus {
-  const { local, remote, snapshot } = input;
+  const { local, remote } = input;
+  const snapshot = trustedSnapshot(input);
   if (local && !remote) return SyncStatus.LOCAL_ONLY;
   if (!local && remote) return SyncStatus.REMOTE_ONLY;
   if (!local || !remote) throw new Error('computeStatus: немає ні локального, ні віддаленого файлу');

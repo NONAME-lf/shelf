@@ -148,6 +148,7 @@ export class SyncEngine {
       localSize: local.size,
       remoteModifiedAt: entry.modifiedAt,
       checksum: entry.checksum,
+      remoteId: entry.id,
     });
   }
 
@@ -163,6 +164,7 @@ export class SyncEngine {
       localSize: written.size,
       remoteModifiedAt: remote.modifiedAt,
       checksum: remote.checksum,
+      remoteId: remote.id,
     });
   }
 
@@ -174,6 +176,7 @@ export class SyncEngine {
       localSize: item.local.size,
       remoteModifiedAt: item.remote.modifiedAt,
       checksum: item.remote.checksum,
+      remoteId: item.remote.id,
     });
   }
 }
