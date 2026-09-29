@@ -1,4 +1,5 @@
 import { FileApiClient, type UserDto } from '@shelf/shared';
+import type { SyncSession } from '../../shared/ipc';
 
 const KEY = 'shelf.session';
 
@@ -17,6 +18,11 @@ export function loadSession(): StoredSession | null {
 
 export function saveSession(session: StoredSession): void {
   localStorage.setItem(KEY, JSON.stringify(session));
+}
+
+/** What the main process needs: the folder binding belongs to this server and user. */
+export function syncSessionOf(session: StoredSession): SyncSession {
+  return { serverUrl: session.serverUrl, token: session.token, userId: session.user.id };
 }
 
 export function clearSession(): void {

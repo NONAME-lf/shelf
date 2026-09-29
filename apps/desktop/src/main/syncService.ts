@@ -3,7 +3,7 @@ import { IPC, type AutoSyncEvent, type DesktopSettings, type SyncRunResult, type
 import { FolderWatcher } from './folderWatcher';
 import { JsonSnapshotStore } from './jsonSnapshotStore';
 import { NodeLocalFolder } from './nodeLocalFolder';
-import type { SettingsStore } from './settings';
+import { accountKey, NO_BINDING, type FolderBinding, type SettingsStore } from './settings';
 
 type Closable = { close(): Promise<void>; ready?(): Promise<void> };
 
@@ -25,10 +25,12 @@ const defaultApi = (session: SyncSession): SyncApi => new FileApiClient({ baseUr
 /**
  * Synchronization in the main process (spec §5, §7.4). The renderer asks for scan(), shows the
  * ConflictDialog for CONFLICT items, then calls run(resolutions). The folder watcher calls autoSync(),
- * which keeps the newer version of a conflicting file without asking.
+ * which keeps the newer version of a conflicting file without asking. The folder and tracking belong to
+ * the signed-in account: after a logout nothing of that account keeps running.
  */
 export class SyncService {
   private session: SyncSession | null = null;
+  private account: string | null = null;
   private pending: SyncEngine | null = null;
   private busy = false;
   private rerun = false;
@@ -37,11 +39,20 @@ export class SyncService {
 
   constructor(private readonly deps: SyncServiceDeps) {}
 
-  async setSession(session: SyncSession | null): Promise<void> {
+  async setSession(session: SyncSession | null): Promise<DesktopSettings> {
     this.session = session;
+    this.account = session ? accountKey(session.serverUrl, session.userId) : null;
     this.pending = null;
+    // a change held back for the previous account must not run under the next one
+    this.rerun = false;
     this.generation++;
     await this.restartWatcher();
+    return this.currentSettings();
+  }
+
+  /** The server address and the signed-in account's folder and tracking. */
+  currentSettings(): DesktopSettings {
+    return { serverUrl: this.deps.settings.serverUrl, ...this.binding() };
   }
 
   requireApi(): SyncApi {
@@ -50,17 +61,17 @@ export class SyncService {
   }
 
   async bindFolder(folderPath: string): Promise<DesktopSettings> {
-    const settings = this.deps.settings.update({ folderPath });
+    this.deps.settings.updateBinding(this.requireAccount(), { folderPath });
     this.pending = null;
     this.generation++;
     await this.restartWatcher();
-    return settings;
+    return this.currentSettings();
   }
 
   async setWatch(enabled: boolean): Promise<DesktopSettings> {
-    const settings = this.deps.settings.update({ watch: enabled });
+    this.deps.settings.updateBinding(this.requireAccount(), { watch: enabled });
     await this.restartWatcher();
-    return settings;
+    return this.currentSettings();
   }
 
   async scan(): Promise<SyncItem[]> {
@@ -104,13 +115,14 @@ export class SyncService {
   }
 
   async autoSync(): Promise<void> {
-    if (!this.session || !this.deps.settings.get().folderPath) return;
+    if (!this.binding().folderPath) return;
     if (this.busy || this.pending) {
       // a change during a running operation or an open conflict dialog: one follow-up run afterwards
       this.rerun = true;
       return;
     }
     this.busy = true;
+    const generation = this.generation;
     let event: AutoSyncEvent;
     try {
       const report = await this.createEngine().synchronize();
@@ -120,7 +132,8 @@ export class SyncService {
     } finally {
       this.busy = false;
     }
-    this.deps.send(IPC.syncAuto, event);
+    // after a logout or a folder change the window shows another account or folder
+    if (generation === this.generation) this.deps.send(IPC.syncAuto, event);
     this.runPendingRerun();
   }
 
@@ -129,13 +142,23 @@ export class SyncService {
     this.watcher = null;
   }
 
+  private binding(): FolderBinding {
+    return this.account ? this.deps.settings.binding(this.account) : { ...NO_BINDING };
+  }
+
+  private requireAccount(): string {
+    if (!this.account) throw new Error('Спочатку увійдіть до системи');
+    return this.account;
+  }
+
   private createEngine(): SyncEngine {
-    const folderPath = this.deps.settings.get().folderPath;
+    const api = this.requireApi();
+    const { folderPath } = this.binding();
     if (!folderPath) throw new Error('Спочатку оберіть локальну папку');
     return new SyncEngine({
       localFolder: new NodeLocalFolder(folderPath),
       snapshotStore: new JsonSnapshotStore(this.deps.snapshotsDir),
-      api: this.requireApi(),
+      api,
     });
   }
 
@@ -156,8 +179,8 @@ export class SyncService {
   private async restartWatcher(): Promise<void> {
     await this.watcher?.close();
     this.watcher = null;
-    const { watch, folderPath } = this.deps.settings.get();
-    if (!watch || !folderPath || !this.session) return;
+    const { watch, folderPath } = this.binding();
+    if (!watch || !folderPath) return;
     const create = this.deps.createWatcher ?? ((path: string, onChange: () => void) => new FolderWatcher(path, onChange));
     this.watcher = create(folderPath, () => void this.autoSync());
     await this.watcher.ready?.();

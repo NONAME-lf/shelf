@@ -16,7 +16,7 @@ const shots = process.env.SHELF_SMOKE_DIR ?? (await mkdtemp(join(tmpdir(), 'shel
 const folder = await mkdtemp(join(tmpdir(), 'shelf-smoke-folder-'));
 await writeFile(join(folder, 'smoke-local.txt'), 'created by the smoke test\n');
 
-const { app, page } = await launchApp({ settings: { folderPath: folder } });
+const { app, page } = await launchApp({ bind: { token, folderPath: folder } });
 try {
   await login(page, email);
   assert.deepEqual(await rowNames(page), ['backup.zip', 'geometry.cpp', 'Main.kt', 'matrix.cpp', 'mountains.jpg', 'shelf-logo.png']);

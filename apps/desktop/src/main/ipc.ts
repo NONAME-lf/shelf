@@ -10,17 +10,18 @@ type IpcDeps = { settings: SettingsStore; sync: SyncService; transfers: FileTran
 export function registerIpc(window: BrowserWindow, deps: IpcDeps): () => void {
   const { settings, sync, transfers } = deps;
 
-  ipcMain.handle(IPC.settingsGet, () => settings.get());
-  ipcMain.handle(IPC.settingsSetServer, (_event, url: unknown) =>
-    settings.update({ serverUrl: String(url ?? '').trim() || settings.get().serverUrl }),
-  );
+  ipcMain.handle(IPC.settingsGet, () => sync.currentSettings());
+  ipcMain.handle(IPC.settingsSetServer, (_event, url: unknown) => {
+    settings.setServerUrl(String(url ?? '').trim() || settings.serverUrl);
+    return sync.currentSettings();
+  });
   ipcMain.handle(IPC.sessionSet, (_event, session: SyncSession | null) => sync.setSession(session));
   ipcMain.handle(IPC.folderChoose, async () => {
     const result = await dialog.showOpenDialog(window, {
       title: 'Оберіть папку для синхронізації',
       properties: ['openDirectory', 'createDirectory'],
     });
-    if (result.canceled || !result.filePaths[0]) return settings.get();
+    if (result.canceled || !result.filePaths[0]) return sync.currentSettings();
     return sync.bindFolder(result.filePaths[0]);
   });
   ipcMain.handle(IPC.syncScan, () => sync.scan());

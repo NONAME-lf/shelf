@@ -14,7 +14,7 @@ await writeFile(join(folder, 'lab-notes.txt'), 'Нотатки до лабора
 const FORM_CLIP = { x: 390, y: 100, width: 500, height: 588 };
 const SWAGGER_CLIP = { x: 265, y: 0, width: 750, height: 712 };
 
-const { app, page } = await launchApp({ settings: { folderPath: folder } });
+const { app, page } = await launchApp({ bind: { token: await loginUser('artem@shelf.dev'), folderPath: folder } });
 const shot = async (name, clip) => {
   await page.mouse.move(1100, 780); // park the pointer on empty space: no leftover row hover
   await page.evaluate(() => document.activeElement?.blur()); // and drop focus left from a closed dialog

@@ -16,8 +16,10 @@ export const IPC = {
   fileStartDrag: 'file:start-drag',
 } as const;
 
+/** The server address and the signed-in account's folder and tracking (none before login). */
 export type DesktopSettings = { serverUrl: string; folderPath: string | null; watch: boolean };
-export type SyncSession = { serverUrl: string; token: string };
+/** The signed-in account: folder bindings are kept per server address and user id. */
+export type SyncSession = { serverUrl: string; token: string; userId: string };
 export type SyncRunResult = { report: SyncReport; syncedAt: string };
 export type AutoSyncEvent = { report: SyncReport | null; error: string | null; syncedAt: string };
 export type TransferFile = Pick<FileEntryDto, 'id' | 'name' | 'modifiedAt'>;
@@ -26,7 +28,8 @@ export type TransferFile = Pick<FileEntryDto, 'id' | 'name' | 'modifiedAt'>;
 export interface ShelfBridge {
   getSettings(): Promise<DesktopSettings>;
   setServerUrl(url: string): Promise<DesktopSettings>;
-  setSession(session: SyncSession | null): Promise<void>;
+  /** Signs the main process in or out; returns the settings of that account. */
+  setSession(session: SyncSession | null): Promise<DesktopSettings>;
   chooseFolder(): Promise<DesktopSettings>;
   scan(): Promise<SyncItem[]>;
   run(resolutions: Record<string, Side>): Promise<SyncRunResult>;

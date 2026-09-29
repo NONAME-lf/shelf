@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { DesktopSettings } from '../../shared/ipc';
 import { LoginScreen } from './screens/LoginScreen';
 import { WorkspaceScreen } from './screens/WorkspaceScreen';
-import { clearSession, loadSession, makeApi, saveSession, type StoredSession } from './session';
+import { clearSession, loadSession, makeApi, saveSession, syncSessionOf, type StoredSession } from './session';
 
 const FALLBACK_SETTINGS: DesktopSettings = { serverUrl: 'http://localhost:4000', folderPath: null, watch: false };
 
@@ -28,7 +28,7 @@ export function App() {
             // an unreachable server is not a reason to log out: only a rejected token is
             if (error instanceof ApiError && error.status === 401) throw error;
           }
-          await window.shelf.setSession({ serverUrl: stored.serverUrl, token: stored.token });
+          setSettings(await window.shelf.setSession(syncSessionOf(stored)));
           setSession(stored);
         } catch (error) {
           if (error instanceof ApiError && error.status === 401) clearSession();
@@ -39,14 +39,15 @@ export function App() {
     })();
   }, []);
 
+  // the folder and tracking shown in the sidebar belong to the account that is signed in
   const logout = useCallback(async () => {
     clearSession();
-    await window.shelf.setSession(null);
+    setSettings(await window.shelf.setSession(null));
     setSession(null);
   }, []);
 
   const loggedIn = useCallback(async (next: StoredSession) => {
-    await window.shelf.setSession({ serverUrl: next.serverUrl, token: next.token });
+    setSettings(await window.shelf.setSession(syncSessionOf(next)));
     saveSession(next);
     setSession(next);
   }, []);
