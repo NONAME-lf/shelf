@@ -12,10 +12,11 @@
 
 ## Локальний запуск сервера
 
-Потрібні Node.js 22+, pnpm 10 (`corepack enable pnpm`) і Docker.
+Потрібні Node.js 22.12+, pnpm 10 (`corepack enable pnpm`) і Docker.
 
 ```bash
 pnpm install
+pnpm build         # збирає пакети; без зібраного @shelf/shared не запускаються ні клієнт, ні тести
 cp docker/.env.example docker/.env
 pnpm stack:up      # PostgreSQL :5433, MinIO :9100 (консоль :9101), API :4000
 pnpm seed          # artem@shelf.dev, iryna@shelf.dev, maksym@shelf.dev; пароль shelf-demo-2026
@@ -25,6 +26,8 @@ pnpm smoke         # перевірка REST API
 Swagger: http://localhost:4000/api/docs. Тести: `pnpm test`. Зупинити: `pnpm stack:down`, скинути дані: `pnpm stack:reset`.
 
 ## Десктоп-клієнт
+
+Спершу `pnpm install` і `pnpm build` (див. вище).
 
 ```bash
 pnpm -F @shelf/desktop dev        # запуск у режимі розробки

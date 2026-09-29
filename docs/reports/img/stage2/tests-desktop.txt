@@ -1,37 +1,51 @@
 
  RUN  v3.2.7 apps/desktop
 
- ✓ src/main/settings.test.ts > SettingsStore > starts with the defaults 1ms
- ✓ src/main/settings.test.ts > SettingsStore > persists changes across instances 1ms
+ ✓ src/main/fsErrors.test.ts > explainFsError > asks to choose a missing folder again 1ms
+ ✓ src/main/fsErrors.test.ts > explainFsError > names a missing file 0ms
+ ✓ src/main/fsErrors.test.ts > explainFsError > explains EACCES as missing access 0ms
+ ✓ src/main/fsErrors.test.ts > explainFsError > explains EPERM as missing access 0ms
+ ✓ src/main/fsErrors.test.ts > explainFsError > passes any other error through unchanged 0ms
+ ✓ src/main/settings.test.ts > SettingsStore > starts with the default server and no folder bound 2ms
+ ✓ src/main/settings.test.ts > SettingsStore > keeps the folder and tracking of each account across instances 4ms
+ ✓ src/main/settings.test.ts > SettingsStore > tells accounts apart by server and user, whatever the spelling of the address 1ms
+ ✓ src/main/settings.test.ts > SettingsStore > drops the folder saved by the single-account format, keeping the server address 2ms
  ✓ src/main/settings.test.ts > SettingsStore > falls back to the defaults for a corrupted or malformed file 1ms
  ✓ src/main/jsonSnapshotStore.test.ts > JsonSnapshotStore > returns an empty snapshot for a folder that was never synchronized 2ms
  ✓ src/main/jsonSnapshotStore.test.ts > JsonSnapshotStore > saves and loads a snapshot 4ms
- ✓ src/main/jsonSnapshotStore.test.ts > JsonSnapshotStore > keeps one snapshot per folder 2ms
+ ✓ src/main/jsonSnapshotStore.test.ts > JsonSnapshotStore > keeps one snapshot per folder 3ms
  ✓ src/main/jsonSnapshotStore.test.ts > JsonSnapshotStore > treats a corrupted file as "never synchronized" 1ms
- ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > lists regular, non-hidden files with size and modification time 4ms
- ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > writes bytes with the given modification time and leaves no temporary file 2ms
- ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > computes the same checksum as the shared helper 4ms
- ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > refuses names that leave the folder 2ms
+ ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > lists regular, non-hidden files with size and modification time 6ms
+ ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > writes bytes with the given modification time and leaves no temporary file 3ms
+ ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > computes the same checksum as the shared helper 3ms
+ ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > refuses names that leave the folder 1ms
  ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > writes a file with a very long name 1ms
  ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > leaves no temporary file when the write fails 1ms
- ✓ src/main/desktopSync.test.ts > SyncEngine on the real file system > keeps the server time on downloaded files, so the next scan is IN_SYNC 8ms
- ✓ src/main/desktopSync.test.ts > SyncEngine on the real file system > detects a conflict after edits on both sides 3ms
- ✓ src/main/syncService.test.ts > SyncService > scans and synchronizes the bound folder 9ms
+ ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > explains in Ukrainian that the bound folder is gone 1ms
+ ✓ src/main/nodeLocalFolder.test.ts > NodeLocalFolder > explains in Ukrainian that a file cannot be read 4ms
+ ✓ src/main/desktopSync.test.ts > SyncEngine on the real file system > keeps the server time on downloaded files, so the next scan is IN_SYNC 7ms
+ ✓ src/main/desktopSync.test.ts > SyncEngine on the real file system > detects a conflict after edits on both sides 5ms
+ ✓ src/main/syncService.test.ts > SyncService > scans and synchronizes the bound folder 10ms
  ✓ src/main/syncService.test.ts > SyncService > applies the resolution chosen in the conflict dialog 4ms
  ✓ src/main/syncService.test.ts > SyncService > refuses to start a second operation while one is running 1ms
  ✓ src/main/syncService.test.ts > SyncService > explains what is missing 1ms
- ✓ src/main/syncService.test.ts > SyncService > watches the folder only when tracking is on, a folder is bound and a user is signed in 2ms
- ✓ src/main/syncService.test.ts > SyncService > synchronizes automatically on a folder change and reports to the window 53ms
- ✓ src/main/syncService.test.ts > SyncService > does not synchronize automatically while a conflict dialog is open 53ms
- ✓ src/main/syncService.test.ts > SyncService > runs one follow-up automatic run when a change arrives during an automatic run 54ms
- ✓ src/main/syncService.test.ts > SyncService > does not restore the plan of the previous folder when the folder changes during a scan 2ms
- ✓ src/main/folderWatcher.test.ts > FolderWatcher > calls back after a file appears in the folder 616ms
- ✓ src/main/folderWatcher.test.ts > FolderWatcher > ignores hidden files 1508ms
- ✓ src/main/folderWatcher.test.ts > FolderWatcher > settles ready() when closed before it is ready 3ms
+ ✓ src/main/syncService.test.ts > SyncService > watches the folder only when tracking is on, a folder is bound and a user is signed in 56ms
+ ✓ src/main/syncService.test.ts > SyncService > synchronizes automatically on a folder change and reports to the window 106ms
+ ✓ src/main/syncService.test.ts > SyncService > does not synchronize automatically while a conflict dialog is open 105ms
+ ✓ src/main/syncService.test.ts > SyncService > runs one follow-up automatic run when a change arrives during an automatic run 110ms
+ ✓ src/main/syncService.test.ts > SyncService > does not restore the plan of the previous folder when the folder changes during a scan 8ms
+ ✓ src/main/syncService.test.ts > SyncService > account B does not inherit account A's folder or tracking 112ms
+ ✓ src/main/folderWatcher.test.ts > FolderWatcher > calls back after a file appears in the folder 621ms
+ ✓ src/main/syncService.test.ts > SyncService > logout stops the watcher and clears a held-back rerun 113ms
+ ✓ src/main/syncService.test.ts > SyncService > rejects binding a folder or tracking without a signed-in user 4ms
+ ✓ src/main/syncService.test.ts > SyncService > waits for a running automatic run before a manual scan instead of failing 4ms
+ ✓ src/main/syncService.test.ts > SyncService > synchronizes what already differs once the watcher is ready, when tracking turns on and when it starts on 131ms
+ ✓ src/main/folderWatcher.test.ts > FolderWatcher > ignores hidden files 1506ms
+ ✓ src/main/folderWatcher.test.ts > FolderWatcher > settles ready() when closed before it is ready 2ms
  ✓ src/main/folderWatcher.test.ts > FolderWatcher > settles ready() for a folder that cannot be read 3ms
 
- Test Files  6 passed (6)
-      Tests  28 passed (28)
-   Start at  22:33:18
-   Duration  2.33s (transform 114ms, setup 0ms, collect 237ms, tests 2.35s, environment 0ms, prepare 270ms)
+ Test Files  7 passed (7)
+      Tests  42 passed (42)
+   Start at  00:36:17
+   Duration  2.34s (transform 136ms, setup 0ms, collect 294ms, tests 2.96s, environment 1ms, prepare 316ms)
 
