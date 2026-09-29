@@ -1,0 +1,36 @@
+@import "tailwindcss";
+@source "./";
+
+@theme {
+  --font-sans: "Inter", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --color-paper: #f7f5f0;
+  --color-paper-2: #efece4;
+  --color-ink: #1d212b;
+  --color-ink-2: #2a303d;
+  --color-ink-3: #3a4254;
+  --color-muted: #6b7183;
+  --color-line: #e2ded3;
+  --color-brass: #c38b1a;
+  --color-brass-2: #a8750f;
+  --color-brass-soft: #f6e7c4;
+  --color-ok: #2f7d4f;
+  --color-danger: #b4322b;
+  --color-danger-soft: #f7dcd9;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+  }
+
+  dialog::backdrop {
+    background: rgb(29 33 43 / 0.45);
+  }
+}
