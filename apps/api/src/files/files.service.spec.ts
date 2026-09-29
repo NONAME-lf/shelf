@@ -131,6 +131,18 @@ describe('FilesService', () => {
     expect(storage.objects.get(prisma.rows[0].storageKey)?.toString()).toBe('version 2');
   });
 
+  it('stores names with leading and trailing spaces exactly and updates them in place', async () => {
+    const lead = await files.upsert('ws-1', artem, ' lead.txt', Buffer.from('a'));
+    const trail = await files.upsert('ws-1', artem, 'trail.txt ', Buffer.from('b'));
+    const again = await files.upsert('ws-1', artem, ' lead.txt', Buffer.from('c'));
+
+    expect(lead.entry.name).toBe(' lead.txt');
+    expect(trail.entry.name).toBe('trail.txt ');
+    expect(again.created).toBe(false);
+    expect(again.entry.id).toBe(lead.entry.id);
+    expect(prisma.rows.map((row) => row.name).sort()).toEqual([' lead.txt', 'trail.txt ']);
+  });
+
   it.each(['../secret.txt', 'a/b.txt', 'a\\b.txt', '', '   ', '..'])('rejects the unsafe name %j', async (name) => {
     await expect(files.upsert('ws-1', artem, name, Buffer.from('x'))).rejects.toBeInstanceOf(BadRequestException);
     expect(storage.objects.size).toBe(0);

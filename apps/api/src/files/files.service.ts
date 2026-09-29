@@ -41,7 +41,8 @@ export class FilesService {
     rawName: string,
     bytes: Buffer,
   ): Promise<{ entry: FileEntryDto; created: boolean }> {
-    const name = rawName.trim();
+    // The name is stored exactly as received, so that it round-trips with the client's local name.
+    const name = rawName;
     if (!isSafeFileName(name)) throw new BadRequestException(`Недопустима назва файлу: «${rawName}»`);
     const checksum = createHash('sha256').update(bytes).digest('hex');
     const contentType = contentTypeFor(name);
