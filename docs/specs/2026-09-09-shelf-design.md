@@ -301,15 +301,18 @@ shelf/
 
 | Файл | Вміст |
 |---|---|
-| `types.ts` | `FileEntryDto`, `UserDto`, `AuthResponseDto`, `LocalFile`, переліки з §3 |
+| `types.ts` | переліки з §3 як `const`-об'єкти з однойменними типами; `FileEntryDto`, `UserDto`, `AuthResponseDto`, `RegisterDto`, `LoginDto`, `WorkspaceDto`, `LocalFile` (`modifiedAt` — мілісекунди) |
+| `hash.ts` | `sha256Hex` — SHA-256 через Web Crypto, той самий формат, що й `checksum` на сервері |
+| `format.ts` | `formatSize`, `formatDateTime` |
 | `fileListOperations.ts` | `sortByName`, `filterByType`, `getVisibleFiles`, `extensionOf` |
 | `columns.ts` | `ColumnKey`, `ColumnVisibility`, `toggleColumn`, стовпець `name` не приховується |
 | `preview.ts` | `previewKindOf(name): PreviewKind`, `FilePreview`, `TextPreview`, `ImagePreview`, `createPreview` |
 | `fileApiClient.ts` | `FileApiClient`: `register`, `login`, `me`, `listFiles`, `upload`, `download`, `remove` |
-| `sync/localFolder.ts` | інтерфейс `LocalFolder` (§3) |
+| `sync/fileNames.ts` | `isSafeFileName`, `isSyncableName` (приховані файли не синхронізуються) |
+| `sync/localFolder.ts` | інтерфейс `LocalFolder` (`listFiles`, `read`, `write`, `checksum` — операція `LocalFile.checksum()` з діаграми класів виконується папкою), `MemoryLocalFolder` для тестів |
 | `sync/snapshot.ts` | `SyncSnapshot`, `SnapshotEntry`, інтерфейс `SnapshotStore { load(), save() }`. На діаграмі послідовності 05 лінія життя `SnapshotStore` позначає знімок разом з його сховищем: `load()` і `save()` належать сховищу, `put(SnapshotEntry)` — знімку. |
-| `sync/syncPlanner.ts` | `computeStatus(local?, remote?, snapshotEntry?): SyncStatus`, `buildItems(...)`: чисті функції |
-| `sync/syncEngine.ts` | `SyncEngine` (§3), незалежний від платформи: приймає `LocalFolder`, `SnapshotStore`, `FileApiClient` |
+| `sync/syncPlanner.ts` | `computeStatus({local, remote, snapshot, localChecksum}): SyncStatus`, `buildItems`, `defaultSide`, `decideDirection` — чисті функції |
+| `sync/syncEngine.ts` | `SyncEngine` (§3): `scan()`, `conflicts()`, `resolve(name, keep)`, `synchronize(onProgress?)`; приймає `LocalFolder`, `SnapshotStore`, `SyncApi` |
 | `limits.ts` | `MAX_UPLOAD_MB = 50`, `splitBySize` |
 
 ### 7.3. `@shelf/ui`

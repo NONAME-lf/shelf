@@ -10,3 +10,4 @@ export * from './sync/fileNames';
 export * from './sync/localFolder';
 export * from './sync/snapshot';
 export * from './sync/syncPlanner';
+export * from './sync/syncEngine';
