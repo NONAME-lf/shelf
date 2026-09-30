@@ -27,6 +27,10 @@ export class FakeDirectoryHandle {
   permissionRequests = 0;
   /** While set, requestPermission() rejects with it (e.g. SecurityError when the user gesture expired). */
   requestError: Error | null = null;
+  /** When set, queryPermission() rejects with it. */
+  queryError: Error | null = null;
+  /** When set, isSameEntry() rejects with it. */
+  sameEntryError: Error | null = null;
   /** The folder was deleted or moved: every call fails with NotFoundError. */
   removed = false;
   /** While set, the next createWritable().close() rejects with it (e.g. QuotaExceededError) and is then cleared. */
@@ -95,10 +99,12 @@ export class FakeDirectoryHandle {
   }
 
   async isSameEntry(other: unknown): Promise<boolean> {
+    if (this.sameEntryError) throw this.sameEntryError;
     return other === this;
   }
 
   async queryPermission(): Promise<PermissionState> {
+    if (this.queryError) throw this.queryError;
     return this.permission;
   }
 

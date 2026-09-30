@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 // Without the variable the deployed site would silently talk to http://localhost:4000 (src/lib/config.ts).
-if (process.env.VERCEL && !process.env.NEXT_PUBLIC_API_URL) {
+if (process.env.VERCEL && !process.env.NEXT_PUBLIC_API_URL?.trim()) {
   throw new Error('NEXT_PUBLIC_API_URL is not set: give the Vercel project the address of the deployed API.');
 }
 

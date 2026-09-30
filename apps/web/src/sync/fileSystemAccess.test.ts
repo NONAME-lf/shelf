@@ -45,4 +45,10 @@ describe('hasFolderPermission', () => {
     await expect(hasFolderPermission(asDirectoryHandle(folder), true)).rejects.toThrow('Немає доступу до папки «Shelf»');
     expect(await hasFolderPermission(asDirectoryHandle(folder), false)).toBe(false);
   });
+
+  it('explains a failing permission query with the folder name', async () => {
+    const folder = new FakeDirectoryHandle('Shelf', new FakeClock());
+    folder.queryError = new DOMException('gone', 'NotFoundError');
+    await expect(hasFolderPermission(asDirectoryHandle(folder), false)).rejects.toThrow('Папку «Shelf» не знайдено');
+  });
 });

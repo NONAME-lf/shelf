@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react';
 /** How long the wait may last before it is explained: a free-tier server needs up to a minute to wake up. */
 export const SLOW_START_MS = 5000;
 
+/** The explanation shown when a request to a sleeping free-tier server takes long. */
+export const SLOW_START_HINT = 'Сервер прокидається після простою — це може тривати до хвилини';
+
 /** Shown until the stored session has been read and checked in the browser, and during redirects. */
 export function Splash() {
   const [slow, setSlow] = useState(false);
@@ -19,7 +22,7 @@ export function Splash() {
       <div>Shelf…</div>
       {slow && (
         <p data-testid="splash-slow" className="max-w-sm text-sm">
-          Сервер прокидається після простою — це може тривати до хвилини
+          {SLOW_START_HINT}
         </p>
       )}
     </div>

@@ -10,7 +10,7 @@ import {
   type SyncReport,
 } from '@shelf/shared';
 import { BrowserLocalFolder } from './browserLocalFolder';
-import { explainPickerError, isAbortError } from './browserErrors';
+import { explainBrowserError, explainPickerError, isAbortError } from './browserErrors';
 import { hasFolderPermission } from './fileSystemAccess';
 import type { FolderBinding, FolderBindings } from './folderBindingStore';
 
@@ -123,7 +123,12 @@ export class WebSyncService {
     // signed out while the picker was open: the choice belongs to nobody now
     if (this.session?.account !== account) return this.state();
     // the same folder chosen again keeps its snapshot; another folder starts a new one
-    const same = current ? await current.handle.isSameEntry(handle) : false;
+    let same = false;
+    try {
+      same = current ? await current.handle.isSameEntry(handle) : false;
+    } catch (error) {
+      throw explainBrowserError(error, current?.handle.name ?? null);
+    }
     const binding: FolderBinding = {
       account,
       id: same && current ? current.id : (this.deps.newId ?? (() => crypto.randomUUID()))(),
@@ -232,7 +237,7 @@ export class WebSyncService {
       }
       listing = listingOf(await this.folderOf(binding).listFiles());
     } catch (error) {
-      this.report(generation, messageOf(error));
+      this.report(generation, messageOf(explainBrowserError(error, null)));
       return;
     }
     if (generation !== this.generation || listing === this.lastListing) return;
@@ -256,7 +261,7 @@ export class WebSyncService {
     } catch (error) {
       // the change is not lost: the next poll tries again (unless the account or folder changed meanwhile)
       if (generation === this.generation) this.lastListing = null;
-      this.report(generation, messageOf(error));
+      this.report(generation, messageOf(explainBrowserError(error, null)));
     }
   }
 

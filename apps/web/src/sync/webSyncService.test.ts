@@ -282,6 +282,35 @@ describe('WebSyncService', () => {
     expect(events[1]).toMatchObject({ error: null, report: { uploaded: 1 } });
   });
 
+  it('reports an IndexedDB failure of an automatic run in Ukrainian', async () => {
+    const { folder, snapshots, events, timers, artemWithFolder } = setup();
+    await artemWithFolder(true);
+    folder.setFile('a.txt', 'x');
+    snapshots.load = async () => {
+      throw new DOMException('Internal error opening backing store', 'UnknownError');
+    };
+    await timers[0].tick();
+    expect(events).toHaveLength(1);
+    expect(events[0].error).toContain('IndexedDB');
+    expect(events[0].error).not.toContain('backing store');
+  });
+
+  it('explains a failing permission query of a poll with the folder name', async () => {
+    const { folder, events, timers, artemWithFolder } = setup();
+    await artemWithFolder(true);
+    folder.queryError = new DOMException('gone', 'NotFoundError');
+    await timers[0].tick();
+    expect(events.map((event) => event.error)).toEqual(['Папку «Shelf» не знайдено — виберіть її знову']);
+  });
+
+  it('explains an isSameEntry failure when another folder is chosen', async () => {
+    const { clock, folder, service, pick, artemWithFolder } = setup();
+    await artemWithFolder();
+    folder.sameEntryError = new DOMException('gone', 'NotFoundError');
+    pick(new FakeDirectoryHandle('Other', clock));
+    await expect(service.chooseFolder()).rejects.toThrow('Папку «Shelf» не знайдено');
+  });
+
   it("account B does not inherit account A's folder or tracking", async () => {
     const { clock, folder, apiOf, timers, service, signIn, pick, artemWithFolder } = setup();
     folder.setFile('artem.txt', 'only for Artem');

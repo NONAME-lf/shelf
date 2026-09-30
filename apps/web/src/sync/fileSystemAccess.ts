@@ -28,12 +28,13 @@ export async function hasFolderPermission(handle: FileSystemHandle, ask: boolean
   const permissions = handle as HandleWithPermissions;
   const descriptor: PermissionDescriptor = { mode: 'readwrite' };
   if (!permissions.queryPermission) return true;
-  if ((await permissions.queryPermission(descriptor)) === 'granted') return true;
-  if (!ask || !permissions.requestPermission) return false;
   try {
+    if ((await permissions.queryPermission(descriptor)) === 'granted') return true;
+    if (!ask || !permissions.requestPermission) return false;
     return (await permissions.requestPermission(descriptor)) === 'granted';
   } catch (error) {
-    // e.g. a SecurityError when the click that started the request is no longer a user gesture
+    // e.g. a SecurityError when the click that started the request is no longer a user gesture,
+    // or a NotFoundError when the folder was deleted
     throw explainBrowserError(error, handle.name);
   }
 }
