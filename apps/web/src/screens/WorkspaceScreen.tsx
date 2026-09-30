@@ -5,11 +5,13 @@ import {
   Banner,
   Button,
   ColumnPicker,
+  ConflictDialog,
   describeUpload,
   FileTableView,
   messageOf,
   PreviewDialog,
   SidebarSection,
+  SyncPanel,
   TypeFilterControl,
   UploadButton,
   UploadDropzone,
@@ -20,6 +22,7 @@ import { RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { saveBlob } from '../lib/saveBlob';
 import { makeApi, type StoredSession } from '../lib/session';
+import { UNSUPPORTED_REASON, useWebSync } from '../sync/useWebSync';
 
 type Props = { session: StoredSession; onLogout: () => void };
 
@@ -27,6 +30,7 @@ export function WorkspaceScreen({ session, onLogout }: Props) {
   // a 401 from any request (an expired token) signs the user out
   const api = useMemo(() => makeApi(session.token, onLogout), [session.token, onLogout]);
   const list = useFileListController(api);
+  const sync = useWebSync({ api, userId: session.user.id, onSynced: list.loadFiles });
   const [notice, setNotice] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
 
   const upload = async (files: File[]) => {
@@ -57,15 +61,37 @@ export function WorkspaceScreen({ session, onLogout }: Props) {
     }
   };
 
+  // a scanned plan must not outlive the session
+  const logout = () => {
+    sync.cancel();
+    onLogout();
+  };
+
   return (
     <>
       <WorkspaceLayout
         user={session.user}
-        onLogout={onLogout}
+        onLogout={logout}
         sidebar={
-          <SidebarSection title="Стовпці таблиці">
-            <ColumnPicker columns={list.columns} onToggle={list.toggleColumn} />
-          </SidebarSection>
+          <>
+            <SidebarSection title="Синхронізація">
+              <SyncPanel
+                folderPath={sync.state.folderName}
+                busy={sync.busy}
+                progress={sync.progress}
+                lastSyncedAt={sync.lastSyncedAt}
+                lastReport={sync.lastReport}
+                error={sync.error}
+                onChooseFolder={() => void sync.chooseFolder()}
+                onSync={() => void sync.sync()}
+                watch={{ enabled: sync.state.watch, onChange: (enabled) => void sync.setWatch(enabled) }}
+                unsupportedReason={sync.supported ? null : UNSUPPORTED_REASON}
+              />
+            </SidebarSection>
+            <SidebarSection title="Стовпці таблиці">
+              <ColumnPicker columns={list.columns} onToggle={list.toggleColumn} />
+            </SidebarSection>
+          </>
         }
         toolbar={
           <>
@@ -114,6 +140,7 @@ export function WorkspaceScreen({ session, onLogout }: Props) {
         onClose={list.closePreview}
         onDownload={(file) => void download(file)}
       />
+      <ConflictDialog items={sync.conflicts} onConfirm={(resolutions) => void sync.confirm(resolutions)} onCancel={sync.cancel} />
     </>
   );
 }

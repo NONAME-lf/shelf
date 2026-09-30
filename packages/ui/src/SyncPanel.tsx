@@ -17,7 +17,7 @@ export type SyncPanelProps = {
   error: string | null;
   onChooseFolder: () => void;
   onSync: () => void;
-  /** Automatic tracking (UC14a) — the desktop client only. */
+  /** Automatic tracking (UC14a): the desktop watches the folder, the web client polls it. */
   watch?: { enabled: boolean; onChange: (enabled: boolean) => void } | null;
   /** Shown instead of the controls when the platform cannot synchronize. */
   unsupportedReason?: string | null;
@@ -39,7 +39,9 @@ export function SyncPanel(props: SyncPanelProps) {
       </div>
 
       {unsupportedReason ? (
-        <p className="text-paper/70">{unsupportedReason}</p>
+        <p className="text-paper/70" data-testid="sync-unsupported">
+          {unsupportedReason}
+        </p>
       ) : (
         <>
           <div className="flex flex-wrap gap-2">

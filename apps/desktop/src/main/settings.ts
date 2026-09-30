@@ -1,6 +1,7 @@
-import { normalizeBaseUrl } from '@shelf/shared';
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+
+export { accountKey } from '@shelf/shared';
 
 /** The local folder one account synchronizes with, and whether changes in it are tracked automatically. */
 export type FolderBinding = { folderPath: string | null; watch: boolean };
@@ -9,11 +10,6 @@ export type StoredSettings = { serverUrl: string; bindings: Record<string, Folde
 
 export const DEFAULT_SERVER_URL = 'http://localhost:4000';
 export const NO_BINDING: FolderBinding = { folderPath: null, watch: false };
-
-/** An account is a user on a server: "<user id>@http://localhost:4000/api". */
-export function accountKey(serverUrl: string, userId: string): string {
-  return `${userId}@${normalizeBaseUrl(serverUrl)}`;
-}
 
 function parseBindings(value: unknown): Record<string, FolderBinding> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};

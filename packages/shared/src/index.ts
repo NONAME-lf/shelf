@@ -6,6 +6,7 @@ export * from './limits';
 export * from './format';
 export * from './preview';
 export * from './fileApiClient';
+export * from './account';
 export * from './sync/fileNames';
 export * from './sync/localFolder';
 export * from './sync/snapshot';

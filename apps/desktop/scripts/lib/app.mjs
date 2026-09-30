@@ -1,5 +1,5 @@
 // Helpers for driving the built desktop app with Playwright's Electron support.
-import { normalizeBaseUrl } from '@shelf/shared';
+import { accountKey } from '@shelf/shared';
 import { _electron as electron } from 'playwright';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -13,14 +13,14 @@ export const DEMO_PASSWORD = 'shelf-demo-2026';
 
 /**
  * Starts the built app with an isolated profile. `bind: { token, folderPath }` binds the folder for the
- * account the token belongs to: the app keeps one folder per account (accountKey in src/main/settings.ts).
+ * account the token belongs to: the app keeps one folder per account (accountKey from @shelf/shared).
  */
 export async function launchApp({ bind, executablePath } = {}) {
   const userData = await mkdtemp(join(tmpdir(), 'shelf-e2e-'));
   const bindings = {};
   if (bind) {
     const user = await api('/auth/me', { token: bind.token });
-    bindings[`${user.id}@${normalizeBaseUrl(SERVER)}`] = { folderPath: bind.folderPath, watch: false };
+    bindings[accountKey(SERVER, user.id)] = { folderPath: bind.folderPath, watch: false };
   }
   await writeFile(join(userData, 'settings.json'), JSON.stringify({ serverUrl: SERVER, bindings }));
   const env = { ...process.env, SHELF_USER_DATA: userData };
