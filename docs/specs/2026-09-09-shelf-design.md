@@ -109,7 +109,7 @@ file list»). Прецедент типу варіанта для діаграм
 | `FilePreview` «abstract» | `# entry: FileEntry` | `canRender(ext): bool`, `render(content: FileContent): PreviewResult` | |
 | `TextPreview` «.kt» | `encoding` | перевизначає | будь-який текстовий тип |
 | `ImagePreview` «.jpg» | `width`, `height` | перевизначає | будь-який растровий тип |
-| `LocalFolder` | `path`, `boundAt` | `listFiles(): List<LocalFile>`, `isBound(): bool`, `read(name): bytes`, `write(name, bytes, modifiedAt): void` | у десктопі — Node `fs`; у вебі — File System Access API |
+| `LocalFolder` | `path`, `boundAt` | `listFiles(): List<LocalFile>`, `isBound(): bool`, `read(name): bytes`, `write(name, bytes, modifiedAt): void` | у десктопі — Node `fs`; у вебі — File System Access API. Примітка: у коді `write` повертає `LocalFile` записаного файлу з його справжнім часом зміни (веб потребує цього, §5.4); назви на діаграмі збережено |
 | `LocalFile` | `name`, `path`, `size`, `modifiedAt` | `checksum(): string` | |
 | `SyncSnapshot` | `folderPath`, `syncedAt`, `entries: Map<name, SnapshotEntry>` | `get(name)`, `put(entry)`, `remove(name)` | стан після останньої успішної синхронізації |
 | `SnapshotEntry` | `name`, `localModifiedAt`, `localSize`, `remoteModifiedAt`, `checksum`, `remoteId?` | — | `remoteId` — `id` серверного файлу, з яким виконано синхронізацію (див. §5.2) |
@@ -176,8 +176,8 @@ getVisibleFiles() = filterByType(sortByName(files, direction), filter)
 JSON у `userData`; веб — handle у IndexedDB). Кнопка «Synchronize» працює з прив'язаною папкою;
 якщо папки немає — відкриває діалог вибору. Поруч видно шлях (у вебі — лише назву папки) і кнопку
 «Change». Автоматичне відстеження змін — окремий перемикач, доступний після прив'язки: у десктопі —
-`chokidar`, у вебі — опитування списку файлів папки кожні 5 с (§7.5). На діаграмі прецедентів етапу 1
-UC14a позначено «desktop only»; веб-клієнт реалізує його опитуванням.
+`chokidar`, у вебі — опитування списку файлів папки кожні 5 с (§7.5). Отже, відстеження (UC14a)
+реалізовано спостерігачем за папкою в десктопі й опитуванням у вебі.
 
 ### 5.2. Обчислення статусу
 
@@ -390,9 +390,9 @@ Tailwind зі спільним пресетом. Жодних `next/*` імпо�
 - Автоматичне відстеження — `WebSyncService` з хуком `useWebSync`: браузер не повідомляє про зміни в
   папці, тож поки перемикач увімкнено і вкладка видима, список файлів (назви, розміри, час зміни)
   перечитується кожні 5 с, і синхронізація запускається лише тоді, коли він змінився. Запобіжники —
-  як у десктопному `SyncService`: один запуск одночасно, відкритий `ConflictDialog` притримує
-  автоматичні запуски, ручна синхронізація спершу запитує дозвіл на папку, а потім чекає на автоматичну, результат запуску попереднього
-  облікового запису чи папки відкидається.
+  як у десктопному `SyncService`: один запуск одночасно; відкритий `ConflictDialog` притримує
+  автоматичні запуски; ручна синхронізація спершу запитує дозвіл на папку, а потім чекає на
+  автоматичну; результат запуску попереднього облікового запису чи папки відкидається.
 - У браузерах без File System Access API (Firefox, Safari) блок синхронізації показує пояснення
   замість кнопок; решта функцій працює.
 - `transpilePackages: ['@shelf/shared', '@shelf/ui']`. Розгортання — Vercel: корінь проєкту
@@ -413,7 +413,8 @@ Jest у `apps/api`: `AuthService`, `FilesService` (оновлення версі
 файловій системі (тимчасова папка) з in-memory API; `SyncEngine` з in-memory `LocalFolder` — у
 `@shelf/shared`. Vitest у `apps/web` (середовище node, без браузера): сесія, `BrowserLocalFolder`
 на in-memory handle-ах із поведінкою Chromium (скачаний файл не вважається зміненим, `*.crswap`
-пропускаються), `IndexedDbSnapshotStore` і `FolderBindingStore` на `fake-indexeddb`, `WebSyncService`
+пропускаються, невдале скачування нового файлу не залишає порожнього файлу), `fileSystemAccess.test.ts`
+(визначення підтримки API і допоміжна функція дозволу), `IndexedDbSnapshotStore` і `FolderBindingStore` на `fake-indexeddb`, `WebSyncService`
 з in-memory API і керованим таймером. Наскрізні перевірки UI обох клієнтів — Playwright
 (`pnpm -F @shelf/desktop smoke`, `pnpm -F @shelf/web smoke`; у вебі папка синхронізації — каталог
 Origin Private File System).

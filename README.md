@@ -40,9 +40,11 @@ pnpm -F @shelf/desktop smoke      # наскрізна перевірка UI (п
 
 ## Веб-клієнт
 
-Спершу `pnpm install` і `pnpm build` (див. вище); сервер має працювати (`pnpm stack:up`).
+Спершу `pnpm install` і `pnpm build` (див. вище); сервер має працювати (`pnpm stack:up`) і бути заповненим (`pnpm seed`).
 
 ```bash
+pnpm stack:up                                        # якщо ще не запущено
+pnpm seed                                            # демонстраційні користувачі (один раз)
 pnpm dev:web                                         # http://localhost:3000 у режимі розробки
 pnpm -F @shelf/web build && pnpm -F @shelf/web start # продакшн-збірка і запуск на :3000
 pnpm -F @shelf/web test                              # unit-тести (Vitest, без браузера)
@@ -53,7 +55,7 @@ pnpm -F @shelf/web smoke                             # наскрізна пер
 Адреса API задається під час збірки змінною `NEXT_PUBLIC_API_URL` (за замовчуванням `http://localhost:4000`),
 тому на екрані входу поля адреси немає. Синхронізація з локальною папкою працює в Chrome і Edge (File System
 Access API); у Firefox і Safari доступні решта функцій. Автоматичне відстеження у вебі — опитування папки кожні
-5 с, поки вкладка відкрита. Якщо порт 3000 зайнятий: `SHELF_WEB_PORT=3100 pnpm -F @shelf/web smoke`.
+5 с, поки вкладка видима. Якщо порт 3000 зайнятий: `SHELF_WEB_PORT=3100 pnpm -F @shelf/web smoke`.
 
 Розгортання на Vercel: корінь проєкту `apps/web`, команди встановлення і збірки — у `apps/web/vercel.json`.
 
