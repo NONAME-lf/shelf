@@ -1,0 +1,44 @@
+# Render Blueprint: the Shelf REST API as a free Docker web service.
+# Secrets marked `sync: false` are entered in the Render dashboard when the Blueprint is created.
+services:
+  - type: web
+    name: shelf-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./docker/api.Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/shared/**
+        - docker/api.Dockerfile
+        - .dockerignore
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - .npmrc
+        - render.yaml
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_BUCKET
+        value: shelf
+      - key: S3_FORCE_PATH_STYLE
+        value: "true"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SWAGGER_ENABLED
+        value: "true"
