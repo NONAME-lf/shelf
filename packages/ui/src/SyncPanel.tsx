@@ -45,10 +45,10 @@ export function SyncPanel(props: SyncPanelProps) {
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={onChooseFolder} disabled={busy !== 'idle'}>
+            <Button size="sm" onClick={onChooseFolder} disabled={busy !== 'idle'} className={cn('whitespace-nowrap', !folderPath && 'grow')}>
               {folderPath ? 'Змінити' : 'Обрати папку'}
             </Button>
-            <Button size="sm" variant="primary" onClick={onSync} disabled={busy !== 'idle'} data-testid="sync-run" className="min-w-0 flex-1">
+            <Button size="sm" variant="primary" onClick={onSync} disabled={busy !== 'idle'} data-testid="sync-run" className={cn('whitespace-nowrap', folderPath ? 'min-w-0 flex-1' : 'grow')}>
               <RefreshCw size={14} className={cn('shrink-0', busy !== 'idle' && 'animate-spin')} /> Синхронізувати
             </Button>
           </div>
