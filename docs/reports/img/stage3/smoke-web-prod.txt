@@ -1,0 +1,21 @@
+ok  a rejected token leads to /login
+ok  login, table sorted ascending
+ok  descending + only .cpp
+ok  only .png
+ok  column hidden
+ok  preview .kt / .jpg / unsupported
+ok  a drag without files is ignored by the drop zone
+ok  a drag with files activates the drop zone and leaving deactivates it
+ok  drop uploads small files and skips files above 50 MB
+ok  upload by button and delete
+ok  download saves Main.kt with its content
+ok  sync downloaded the workspace and uploaded smoke-local.txt, no swap files left
+ok  a second sync changes nothing: downloaded files are not uploaded back
+ok  conflict dialog: the chosen server version replaced the local file
+ok  tracking uploaded a new local file
+ok  narrow window: the sidebar opens from the toggle and closes on the backdrop
+ok  logout
+ok  registration form creates the account and opens the workspace
+ok  the bound folder belongs to the account
+ok  without the File System Access API the sync block is off with an explanation
+web-smoke: OK

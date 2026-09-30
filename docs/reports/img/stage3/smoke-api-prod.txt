@@ -1,0 +1,21 @@
+ok  health
+ok  register
+ok  duplicate register → 409
+ok  no token → 401
+ok  401 message is Ukrainian
+ok  upload new → 201
+ok  re-upload same name → 200
+ok  new version keeps the id
+ok  new version has a new checksum
+ok  cyrillic name round-trip
+ok  content-disposition keeps the UTF-8 name
+ok  list has 2 files
+ok  content is the latest version
+ok  .kt is served as text/plain
+ok  51 MB → 413
+ok  413 message is Ukrainian
+ok  malformed id → 404
+ok  malformed id message is Ukrainian
+ok  delete → 204
+ok  deleted file → 404
+api-smoke: OK

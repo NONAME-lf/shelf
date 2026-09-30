@@ -1,0 +1,64 @@
+ RUN  v3.2.7 apps/web
+
+ ✓ src/sync/browserErrors.test.ts > explainBrowserError > translates folder errors and names the folder or the file 1ms
+ ✓ src/sync/browserErrors.test.ts > explainBrowserError > translates IndexedDB errors when no folder is involved 0ms
+ ✓ src/sync/browserErrors.test.ts > explainBrowserError > passes other errors through unchanged 0ms
+ ✓ src/sync/browserErrors.test.ts > picker errors > tells a closed picker from a failed one 0ms
+ ✓ src/sync/fileSystemAccess.test.ts > directoryPicker > is null without the File System Access API (Firefox, Safari) 1ms
+ ✓ src/sync/fileSystemAccess.test.ts > directoryPicker > calls showDirectoryPicker on its window with the options 1ms
+ ✓ src/sync/fileSystemAccess.test.ts > hasFolderPermission > asks only when told to and reports the answer 0ms
+ ✓ src/sync/fileSystemAccess.test.ts > hasFolderPermission > explains a request the browser refuses, e.g. after the user gesture expired 1ms
+ ✓ src/sync/fileSystemAccess.test.ts > hasFolderPermission > explains a failing permission query with the folder name 0ms
+ ✓ src/lib/session.test.ts > stored session > round-trips the session of this API and forgets it on logout 1ms
+ ✓ src/lib/session.test.ts > stored session > ignores a session issued by another API and damaged data 0ms
+ ✓ src/lib/session.test.ts > verifySession > drops a rejected token and keeps the session when the server is unreachable 0ms
+ ✓ src/lib/session.test.ts > verifySession > takes the current name from the server 0ms
+ ✓ src/lib/session.test.ts > apiUrlFrom > uses the local stack unless NEXT_PUBLIC_API_URL is set 0ms
+ ✓ src/sync/folderBindingStore.test.ts > FolderBindingStore > keeps one folder and tracking flag per account 8ms
+ ✓ src/sync/folderBindingStore.test.ts > FolderBindingStore > ignores a record without a handle 0ms
+ ✓ src/sync/browserLocalFolder.test.ts > BrowserLocalFolder > lists only syncable top-level files: no sub-folders, hidden files or .crswap swap files 1ms
+ ✓ src/sync/browserLocalFolder.test.ts > BrowserLocalFolder > reads the bytes and computes the checksum the server would 1ms
+ ✓ src/sync/browserLocalFolder.test.ts > BrowserLocalFolder > write returns the time the file really got, not the requested server time 0ms
+ ✓ src/sync/browserLocalFolder.test.ts > BrowserLocalFolder > a downloaded file is IN_SYNC on the next scan, so it is never uploaded back 3ms
+ ✓ src/sync/browserLocalFolder.test.ts > BrowserLocalFolder > detects a conflict after edits on both sides 1ms
+ ✓ src/sync/browserLocalFolder.test.ts > BrowserLocalFolder > a failed download of a new file leaves no file behind, so the next run downloads it again 1ms
+ ✓ src/sync/browserLocalFolder.test.ts > BrowserLocalFolder > a failed download over an existing file keeps its previous content 1ms
+ ✓ src/sync/browserLocalFolder.test.ts > BrowserLocalFolder > explains a missing folder, a withdrawn permission and a missing file in Ukrainian 0ms
+ ✓ src/sync/browserLocalFolder.test.ts > BrowserLocalFolder > refuses unsafe names and a name taken by a sub-folder 0ms
+ ✓ src/sync/indexedDbSnapshotStore.test.ts > IndexedDbSnapshotStore > returns an empty snapshot for a folder never synchronized 3ms
+ ✓ src/sync/indexedDbSnapshotStore.test.ts > IndexedDbSnapshotStore > keeps one snapshot per folder, also for the next page load 2ms
+ ✓ src/sync/indexedDbSnapshotStore.test.ts > IndexedDbSnapshotStore > keeps entries named like Object.prototype members as own entries 2ms
+ ✓ src/sync/indexedDbSnapshotStore.test.ts > IndexedDbSnapshotStore > treats a record of the wrong shape as never synchronized 2ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > scans and synchronizes the bound folder 5ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > applies the resolution chosen in the conflict dialog 4ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > refuses to start a second operation while one is running 1ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > explains what is missing 1ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > binds the chosen folder to the account; closing the picker changes nothing 0ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > a picker failure other than closing it gets its own Ukrainian message and binds nothing 0ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > keeps the snapshot when the same folder is chosen again and starts a new one for another folder 0ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > polls every 5 s while tracking is on and synchronizes only when the listing changed 1ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > does not poll while the tab is hidden 2ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > does not synchronize automatically while a conflict dialog is open 52ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > waits for a running automatic run before a manual scan instead of failing 0ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > runs one follow-up automatic run when a change arrives during an automatic run 103ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > does not keep the plan of the previous folder when the folder changes during a scan 52ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > without folder permission tracking reports once and waits; a manual sync asks for it 1ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > reports a failing automatic run once and retries it on the next poll 1ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > reports an IndexedDB failure of an automatic run in Ukrainian 0ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > explains a failing permission query of a poll with the folder name 0ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > explains an isSameEntry failure when another folder is chosen 0ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > account B does not inherit account A's folder or tracking 1ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > logout stops polling and drops a late automatic result 102ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > logout drops a late automatic error of the previous account 52ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > asks for the folder permission before waiting for a running automatic run 102ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > runs the automatic run held back during a manual scan even when that scan fails 1ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > does not synchronize automatically while tracking is off 0ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > a manual run that waits for an automatic run stays with its own account 54ms
+ ✓ src/sync/webSyncService.test.ts > WebSyncService > the new folder's first poll is not lost behind a poll of the previous folder 102ms
+ ✓ src/sync/webSyncService.test.ts > everyInterval > ticks at once, then every interval until stopped 5ms
+
+ Test Files  7 passed (7)
+      Tests  56 passed (56)
+   Start at  14:33:06
+   Duration  1.05s (transform 230ms, setup 0ms, collect 493ms, tests 681ms, environment 1ms, prepare 386ms)
+

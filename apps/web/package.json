@@ -10,7 +10,8 @@
     "start": "next start --port 3000",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "smoke": "next build && node scripts/smoke.mjs"
+    "smoke": "next build && node scripts/smoke.mjs",
+    "screenshots": "next build && node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@shelf/shared": "workspace:*",

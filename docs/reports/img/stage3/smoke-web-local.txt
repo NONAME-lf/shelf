@@ -1,0 +1,50 @@
+> @shelf/web@1.0.0 smoke apps/web
+> next build && node scripts/smoke.mjs
+
+▲ Next.js 16.3.7 (Turbopack)
+✓ Running next.config.ts took 68ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 524ms
+  Running TypeScript ...
+  Finished TypeScript in 1214ms ...
+  Collecting page data using 8 workers ...
+  Generating static pages using 8 workers (0/7) ...
+  Generating static pages using 8 workers (1/7) 
+  Generating static pages using 8 workers (3/7) 
+  Generating static pages using 8 workers (5/7) 
+✓ Generating static pages using 8 workers (7/7) in 277ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /icon.svg
+├ ○ /login
+├ ○ /register
+└ ○ /workspace
+
+
+○  (Static)  prerendered as static content
+
+ok  a rejected token leads to /login
+ok  login, table sorted ascending
+ok  descending + only .cpp
+ok  only .png
+ok  column hidden
+ok  preview .kt / .jpg / unsupported
+ok  a drag without files is ignored by the drop zone
+ok  a drag with files activates the drop zone and leaving deactivates it
+ok  drop uploads small files and skips files above 50 MB
+ok  upload by button and delete
+ok  download saves Main.kt with its content
+ok  sync downloaded the workspace and uploaded smoke-local.txt, no swap files left
+ok  a second sync changes nothing: downloaded files are not uploaded back
+ok  conflict dialog: the chosen server version replaced the local file
+ok  tracking uploaded a new local file
+ok  narrow window: the sidebar opens from the toggle and closes on the backdrop
+ok  logout
+ok  registration form creates the account and opens the workspace
+ok  the bound folder belongs to the account
+ok  without the File System Access API the sync block is off with an explanation
+web-smoke: OK

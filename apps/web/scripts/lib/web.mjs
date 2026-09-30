@@ -17,7 +17,7 @@ export const PORT = Number(process.env.SHELF_WEB_PORT ?? 3000);
 export const WEB = process.env.SHELF_WEB ?? `http://localhost:${PORT}`;
 export const DEMO_PASSWORD = 'shelf-demo-2026';
 /** The directory of the Origin Private File System that the stubbed folder picker returns. */
-export const SYNC_DIR = 'shelf-smoke';
+export const SYNC_DIR = process.env.SHELF_SYNC_DIR ?? 'shelf-smoke';
 
 const answers = async (url) => {
   try {
@@ -64,14 +64,15 @@ export async function startWeb() {
  * default (incognito) contexts crash Chromium when a directory handle is read back from IndexedDB, which
  * the client does on every login. `folderPicker: 'opfs'` replaces the native picker, which Playwright
  * cannot drive, with a directory of the Origin Private File System; 'none' removes the File System
- * Access API as in Firefox or Safari. Close the context, then `removeProfile(profile)`.
+ * Access API as in Firefox or Safari. `viewport` and `deviceScaleFactor` size the window. Close the context, then `removeProfile(profile)`.
  */
-export async function launchBrowser({ folderPicker = 'opfs' } = {}) {
+export async function launchBrowser({ folderPicker = 'opfs', viewport = { width: 1280, height: 820 }, deviceScaleFactor = 1 } = {}) {
   const profile = await mkdtemp(join(tmpdir(), 'shelf-web-profile-'));
   const context = await chromium
     .launchPersistentContext(profile, {
       baseURL: WEB,
-      viewport: { width: 1280, height: 820 },
+      viewport,
+      deviceScaleFactor,
       acceptDownloads: true,
     })
     .catch(async (error) => {
