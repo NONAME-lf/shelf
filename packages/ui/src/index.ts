@@ -12,5 +12,6 @@ export * from './SyncPanel';
 export * from './SyncReportView';
 export * from './TypeFilterControl';
 export * from './UploadDropzone';
+export * from './uploadNotice';
 export * from './useFileListController';
 export * from './WorkspaceLayout';

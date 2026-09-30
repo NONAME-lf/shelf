@@ -1,9 +1,10 @@
-import { MAX_UPLOAD_MB, type FileEntryDto } from '@shelf/shared';
+import type { FileEntryDto } from '@shelf/shared';
 import {
   Banner,
   Button,
   ColumnPicker,
   ConflictDialog,
+  describeUpload,
   FileTableView,
   messageOf,
   PreviewDialog,
@@ -14,7 +15,6 @@ import {
   UploadDropzone,
   useFileListController,
   WorkspaceLayout,
-  type UploadOutcome,
 } from '@shelf/ui';
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -29,14 +29,6 @@ type Props = {
   onSettings: (settings: DesktopSettings) => void;
   onLogout: () => Promise<void>;
 };
-
-function describeUpload(outcome: UploadOutcome): string | null {
-  const parts: string[] = [];
-  if (outcome.uploaded > 0) parts.push(`Завантажено файлів: ${outcome.uploaded}`);
-  if (outcome.rejected.length > 0) parts.push(`Більші за ${MAX_UPLOAD_MB} МБ і пропущені: ${outcome.rejected.join(', ')}`);
-  if (outcome.errors.length > 0) parts.push(`Помилки: ${outcome.errors.join('; ')}`);
-  return parts.length > 0 ? parts.join('. ') : null;
-}
 
 export function WorkspaceScreen({ session, settings, onSettings, onLogout }: Props) {
   const api = useMemo(() => makeApi(session.serverUrl, session.token, () => void onLogout()), [session, onLogout]);
