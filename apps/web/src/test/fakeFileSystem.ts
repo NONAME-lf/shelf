@@ -29,6 +29,8 @@ export class FakeDirectoryHandle {
   requestError: Error | null = null;
   /** The folder was deleted or moved: every call fails with NotFoundError. */
   removed = false;
+  /** While set, the next createWritable().close() rejects with it (e.g. QuotaExceededError) and is then cleared. */
+  closeError: Error | null = null;
   private readonly items = new Map<string, Entry>();
 
   constructor(
@@ -83,6 +85,13 @@ export class FakeDirectoryHandle {
       this.setFile(name, new Uint8Array());
     }
     return new FakeFileHandle(this, name);
+  }
+
+  /** Like Chrome's removeEntry(): NotFoundError for a missing entry (no `recursive` support needed here). */
+  async removeEntry(name: string): Promise<void> {
+    this.assertUsable();
+    if (!this.items.has(name)) throw domError('NotFoundError', `${name} not found`);
+    this.items.delete(name);
   }
 
   async isSameEntry(other: unknown): Promise<boolean> {
@@ -140,6 +149,11 @@ export class FakeFileHandle {
         chunks.push(new Uint8Array(data));
       },
       async close() {
+        const failure = directory.closeError;
+        if (failure) {
+          directory.closeError = null;
+          throw failure;
+        }
         const bytes = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0));
         let offset = 0;
         for (const chunk of chunks) {

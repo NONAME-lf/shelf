@@ -73,6 +73,33 @@ describe('BrowserLocalFolder', () => {
     expect((await engine().scan()).map((item) => item.status)).toEqual([SyncStatus.CONFLICT]);
   });
 
+  it('a failed download of a new file leaves no file behind, so the next run downloads it again', async () => {
+    const api = new FakeApi();
+    const snapshots = new MemorySnapshotStore();
+    const engine = () => new SyncEngine({ localFolder: folder, snapshotStore: snapshots, api });
+    await api.put('report.txt', 'server copy');
+
+    root.closeError = new DOMException('disk full', 'QuotaExceededError');
+    expect(await engine().synchronize()).toMatchObject({ downloaded: 0, uploaded: 0 });
+    expect(root.has('report.txt')).toBe(false);
+    expect(root.has('report.txt.crswap')).toBe(false);
+
+    clock.advance(HOUR);
+    expect(await engine().synchronize()).toMatchObject({ downloaded: 1, uploaded: 0, errors: [] });
+    expect(root.text('report.txt')).toBe('server copy');
+    expect(api.uploads).toBe(0);
+  });
+
+  it('a failed download over an existing file keeps its previous content', async () => {
+    root.setFile('report.txt', 'old', clock.now() - HOUR);
+    root.closeError = new DOMException('disk full', 'QuotaExceededError');
+    await expect(folder.write('report.txt', new TextEncoder().encode('new'), new Date())).rejects.toThrow(
+      'Недостатньо місця на диску для «report.txt»',
+    );
+    expect(root.text('report.txt')).toBe('old');
+    expect(root.has('report.txt.crswap')).toBe(false);
+  });
+
   it('explains a missing folder, a withdrawn permission and a missing file in Ukrainian', async () => {
     await expect(folder.read('gone.txt')).rejects.toThrow('Файл «gone.txt» не знайдено');
 

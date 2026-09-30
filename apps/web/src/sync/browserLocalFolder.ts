@@ -52,8 +52,16 @@ export class BrowserLocalFolder implements LocalFolder {
    * the file really got — then the next scan sees the downloaded file unchanged (spec §5.4).
    */
   async write(name: string, bytes: Uint8Array, _modifiedAt: Date): Promise<LocalFile> {
+    let created = false;
     try {
-      const handle = await this.handle.getFileHandle(this.checked(name), { create: true });
+      const safe = this.checked(name);
+      // Look the file up first: `create: true` would leave an empty file behind when the write fails, and
+      // the next run would take that empty file for a newer local edit and upload it over the server copy.
+      let handle = await existingFileHandle(this.handle, safe);
+      if (!handle) {
+        handle = await this.handle.getFileHandle(safe, { create: true });
+        created = true;
+      }
       const writable = await handle.createWritable();
       try {
         await writable.write(new Uint8Array(bytes));
@@ -64,6 +72,10 @@ export class BrowserLocalFolder implements LocalFolder {
       }
       return this.describe(name, await handle.getFile());
     } catch (error) {
+      // An existing file keeps its old content (the writable is a swap); a file this call created is
+      // removed. Remaining window: a crash or a closed tab between the create and the close leaves an empty
+      // file that the next run treats as a local edit — the browser gives no atomic create-with-content.
+      if (created) await this.handle.removeEntry(name).catch(() => undefined);
       throw explainBrowserError(error, this.handle.name, name);
     }
   }
@@ -86,6 +98,16 @@ export class BrowserLocalFolder implements LocalFolder {
 async function fileOrNull(handle: FileSystemFileHandle): Promise<File | null> {
   try {
     return await handle.getFile();
+  } catch (error) {
+    if (errorName(error) === 'NotFoundError') return null;
+    throw error;
+  }
+}
+
+/** The handle of an existing file, or null when there is none (a sub-folder of that name still throws). */
+async function existingFileHandle(directory: FileSystemDirectoryHandle, name: string): Promise<FileSystemFileHandle | null> {
+  try {
+    return await directory.getFileHandle(name);
   } catch (error) {
     if (errorName(error) === 'NotFoundError') return null;
     throw error;
