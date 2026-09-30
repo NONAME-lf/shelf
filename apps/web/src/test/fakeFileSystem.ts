@@ -25,6 +25,8 @@ export class FakeDirectoryHandle {
   /** Whether the user allows access when requestPermission() shows the prompt. */
   grantOnRequest = true;
   permissionRequests = 0;
+  /** While set, requestPermission() rejects with it (e.g. SecurityError when the user gesture expired). */
+  requestError: Error | null = null;
   /** The folder was deleted or moved: every call fails with NotFoundError. */
   removed = false;
   private readonly items = new Map<string, Entry>();
@@ -93,6 +95,7 @@ export class FakeDirectoryHandle {
 
   async requestPermission(): Promise<PermissionState> {
     this.permissionRequests += 1;
+    if (this.requestError) throw this.requestError;
     if (this.permission !== 'granted' && this.grantOnRequest) this.permission = 'granted';
     return this.permission;
   }

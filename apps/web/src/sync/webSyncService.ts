@@ -210,9 +210,13 @@ export class WebSyncService {
 
   /** One polling tick: synchronizes when the folder listing differs from the one the last tick saw. */
   poll(): Promise<void> {
-    this.polling ??= this.pollOnce().finally(() => {
-      this.polling = null;
-    });
+    if (!this.polling) {
+      const running: Promise<void> = this.pollOnce().finally(() => {
+        // restartPolling may have replaced it with a poll of the new account or folder
+        if (this.polling === running) this.polling = null;
+      });
+      this.polling = running;
+    }
     return this.polling;
   }
 
@@ -244,12 +248,14 @@ export class WebSyncService {
         return;
       }
       const report = await this.engineFor(session, binding).synchronize();
-      this.reported = null;
       // after a logout or a folder change the page shows another account or folder
-      if (generation === this.generation) this.deps.onAutoSync({ report, error: null, syncedAt: this.now().toISOString() });
+      if (generation === this.generation) {
+        this.reported = null;
+        this.deps.onAutoSync({ report, error: null, syncedAt: this.now().toISOString() });
+      }
     } catch (error) {
-      // the change is not lost: the next poll tries again
-      this.lastListing = null;
+      // the change is not lost: the next poll tries again (unless the account or folder changed meanwhile)
+      if (generation === this.generation) this.lastListing = null;
       this.report(generation, messageOf(error));
     }
   }
@@ -264,6 +270,8 @@ export class WebSyncService {
     this.stopPolling?.();
     this.stopPolling = null;
     this.lastListing = null;
+    // a poll still in flight belongs to the previous account or folder; the new poller's first tick must not reuse it
+    this.polling = null;
     if (!this.session || !this.binding?.watch) return;
     this.stopPolling = (this.deps.every ?? everyInterval)(POLL_INTERVAL_MS, () => this.poll());
   }

@@ -302,7 +302,7 @@ describe('WebSyncService', () => {
     await timers[0].tick();
     expect(events).toHaveLength(1);
 
-    // Iryna's folder, bound and tracked earlier
+    // Iryna's folder; she binds and tracks it after Artem has logged out
     const irynaFolder = new FakeDirectoryHandle('Iryna', clock);
     irynaFolder.setFile('iryna.txt', 'only for Iryna');
 
@@ -328,6 +328,119 @@ describe('WebSyncService', () => {
     // nothing of Artem's session runs or reports under Iryna's
     expect(events).toHaveLength(1);
     expect(apiOf(IRYNA).text('iryna.txt')).toBeUndefined();
+  });
+
+  it("logout drops a late automatic error of the previous account", async () => {
+    const { clock, folder, apiOf, events, timers, service, signIn, pick, artemWithFolder } = setup();
+    await artemWithFolder(true);
+    await timers[0].tick();
+    expect(events).toHaveLength(1);
+
+    folder.setFile('late.txt', 'x');
+    let release = () => {};
+    apiOf(ARTEM).gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const running = timers[0].tick();
+    await vi.waitFor(() => expect(apiOf(ARTEM).waiting).toBe(1));
+
+    await service.setSession(null);
+    await signIn(IRYNA);
+    pick(new FakeDirectoryHandle('Iryna', clock));
+    await service.chooseFolder();
+    apiOf(ARTEM).failWith = new ApiError(0, 'Сервер недоступний: fetch failed');
+    release();
+    await running;
+
+    expect(events).toHaveLength(1);
+  });
+
+  it('asks for the folder permission before waiting for a running automatic run', async () => {
+    const { folder, apiOf, service, artemWithFolder } = setup();
+    folder.setFile('notes.txt', 'x');
+    await artemWithFolder(true);
+    let release = () => {};
+    apiOf(ARTEM).gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const automatic = service.autoSync();
+    await vi.waitFor(() => expect(apiOf(ARTEM).waiting).toBe(1));
+    folder.permission = 'prompt';
+
+    const scanning = service.scan();
+    await vi.waitFor(() => expect(folder.permissionRequests).toBe(1)); // still gated: the click is a user gesture
+    expect(apiOf(ARTEM).waiting).toBe(1);
+    apiOf(ARTEM).gate = null;
+    release();
+    await automatic;
+    await scanning;
+  });
+
+  it('runs the automatic run held back during a manual scan even when that scan fails', async () => {
+    const { folder, events, timers, service, artemWithFolder } = setup();
+    await artemWithFolder(true);
+    await timers[0].tick();
+    folder.permission = 'prompt';
+    folder.grantOnRequest = false;
+    const scanning = service.scan(); // starts synchronously: a manual operation is running
+    await service.autoSync(); // held back
+    await expect(scanning).rejects.toThrow('Доступ до папки «Shelf» не надано');
+    // the follow-up run started; without folder permission it reports that instead of staying silent
+    await vi.waitFor(() => expect(events.map((event) => event.error)).toEqual([null, permissionMessage('Shelf')]));
+  });
+
+  it('does not synchronize automatically while tracking is off', async () => {
+    const { folder, apiOf, events, service, artemWithFolder } = setup();
+    folder.setFile('a.txt', 'x');
+    await artemWithFolder();
+    await service.autoSync();
+    expect(events).toHaveLength(0);
+    expect(apiOf(ARTEM).files.size).toBe(0);
+  });
+
+  it("a manual run that waits for an automatic run stays with its own account", async () => {
+    const { folder, apiOf, service, signIn, artemWithFolder } = setup();
+    folder.setFile('a.txt', 'x');
+    await artemWithFolder(true);
+    let release = () => {};
+    apiOf(ARTEM).gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const automatic = service.autoSync();
+    await vi.waitFor(() => expect(apiOf(ARTEM).waiting).toBe(1));
+    const running = service.run({});
+    await new Promise((resolve) => setTimeout(resolve, 0)); // the run has built its engine and waits
+    await signIn(IRYNA);
+    apiOf(ARTEM).gate = null;
+    release();
+    await automatic;
+    await expect(running).resolves.toMatchObject({ report: { errors: [] } });
+    expect(apiOf(ARTEM).text('a.txt')).toBe('x');
+    expect(apiOf(IRYNA).files.size).toBe(0);
+  });
+
+  it("the new folder's first poll is not lost behind a poll of the previous folder", async () => {
+    const { clock, folder, apiOf, timers, service, pick, artemWithFolder } = setup();
+    folder.setFile('old.txt', 'old');
+    await artemWithFolder(true);
+    let release = () => {};
+    apiOf(ARTEM).gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const oldPoll = timers[0].tick(); // its run is held at the server
+    await vi.waitFor(() => expect(apiOf(ARTEM).waiting).toBe(1));
+
+    const other = new FakeDirectoryHandle('Other', clock);
+    other.setFile('new.txt', 'new');
+    pick(other);
+    await service.chooseFolder();
+    expect(timers).toHaveLength(2);
+    await timers[1].tick(); // the immediate tick of the new poller
+
+    apiOf(ARTEM).gate = null;
+    release();
+    await oldPoll;
+    await vi.waitFor(() => expect(apiOf(ARTEM).text('new.txt')).toBe('new'));
   });
 });
 

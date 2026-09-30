@@ -1,3 +1,5 @@
+import { explainBrowserError } from './browserErrors';
+
 export type AccessMode = 'read' | 'readwrite';
 type PermissionDescriptor = { mode: AccessMode };
 
@@ -28,5 +30,10 @@ export async function hasFolderPermission(handle: FileSystemHandle, ask: boolean
   if (!permissions.queryPermission) return true;
   if ((await permissions.queryPermission(descriptor)) === 'granted') return true;
   if (!ask || !permissions.requestPermission) return false;
-  return (await permissions.requestPermission(descriptor)) === 'granted';
+  try {
+    return (await permissions.requestPermission(descriptor)) === 'granted';
+  } catch (error) {
+    // e.g. a SecurityError when the click that started the request is no longer a user gesture
+    throw explainBrowserError(error, handle.name);
+  }
 }

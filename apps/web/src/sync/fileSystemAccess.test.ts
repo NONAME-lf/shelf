@@ -37,4 +37,12 @@ describe('hasFolderPermission', () => {
     expect(await hasFolderPermission(asDirectoryHandle(folder), true)).toBe(true);
     expect(folder.permissionRequests).toBe(2);
   });
+
+  it('explains a request the browser refuses, e.g. after the user gesture expired', async () => {
+    const folder = new FakeDirectoryHandle('Shelf', new FakeClock());
+    folder.permission = 'prompt';
+    folder.requestError = new DOMException('User activation is required', 'SecurityError');
+    await expect(hasFolderPermission(asDirectoryHandle(folder), true)).rejects.toThrow('Немає доступу до папки «Shelf»');
+    expect(await hasFolderPermission(asDirectoryHandle(folder), false)).toBe(false);
+  });
 });
