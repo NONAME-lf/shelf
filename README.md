@@ -75,7 +75,8 @@ Access API); у Firefox і Safari доступні решта функцій. А
 ## Звіти
 
 Звіт етапу 4 порівнює десктопний і веб-клієнти: `docs/reports/stage4-comparison.pdf`. Виміряні в ньому
-частку спільного коду, розміри, час запуску і першої синхронізації повторює `node tools/compare-clients.mjs`
-з командами `loc`, `artefacts`, `web-load`, `startup` і `sync` (опис — на початку скрипта).
+показники (частку спільного коду, розміри, час запуску і першої синхронізації) можна отримати знову командою
+`node tools/compare-clients.mjs` з аргументом `loc`, `artefacts`, `web-load`, `startup` або `sync` (опис — на
+початку скрипта).
 
 Збірка звіту: `tools/build-report.sh docs/reports/<звіт>.md` (потрібні pandoc і xelatex).
