@@ -59,20 +59,28 @@ try {
       zone.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: data }));
     }, withFiles);
   const dropzoneActive = () => page.getByTestId('dropzone').getAttribute('data-active');
+  // React renders drag events and the drag-out guard asynchronously: wait for the state, or give a
+  // render time before asserting that nothing changed.
+  const dropzoneBecomes = (active) =>
+    page.waitForFunction((active) => document.querySelector('[data-testid="dropzone"]').dataset.active === active, active, {
+      timeout: 5_000,
+    });
+  const settle = () => page.waitForTimeout(300);
   await dragEnter(false);
+  await settle();
   assert.equal(await dropzoneActive(), 'false');
   console.log('ok  internal drag ignored by the drop zone');
 
   // Positive control: a drag with OS files does open it, and leaving closes it again.
   await dragEnter(true);
-  assert.equal(await dropzoneActive(), 'true');
+  await dropzoneBecomes('true');
   await page.evaluate(() => {
     const zone = document.querySelector('[data-testid="dropzone"]');
     const data = new DataTransfer();
     data.items.add(new File(['x'], 'outside.txt'));
     zone.dispatchEvent(new DragEvent('dragleave', { bubbles: true, cancelable: true, dataTransfer: data }));
   });
-  assert.equal(await dropzoneActive(), 'false');
+  await dropzoneBecomes('false');
   console.log('ok  drag with OS files activates the drop zone and leaving deactivates it');
 
   // Dragging a row out starts a native drag of a real file; while it runs the drop zone must stay closed.
@@ -80,19 +88,22 @@ try {
     const row = document.querySelector('[data-testid="file-row"][data-name="Main.kt"]');
     row.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: new DataTransfer() }));
   });
+  await settle();
   await dragEnter(true);
+  await settle();
   assert.equal(await dropzoneActive(), 'false');
   await page.mouse.move(700, 500);
   await page.mouse.move(720, 520);
+  await settle();
   await dragEnter(true);
-  assert.equal(await dropzoneActive(), 'true');
+  await dropzoneBecomes('true');
   await page.evaluate(() => {
     const zone = document.querySelector('[data-testid="dropzone"]');
     const data = new DataTransfer();
     data.items.add(new File(['x'], 'outside.txt'));
     zone.dispatchEvent(new DragEvent('dragleave', { bubbles: true, cancelable: true, dataTransfer: data }));
   });
-  assert.equal(await dropzoneActive(), 'false');
+  await dropzoneBecomes('false');
   console.log('ok  drop zone stays closed during a row drag-out and works again afterwards');
 
   // Dropping a 51 MB file with a small one: the big one is skipped, the small one uploaded.
