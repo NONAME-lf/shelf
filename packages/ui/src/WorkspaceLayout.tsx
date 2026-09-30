@@ -1,8 +1,9 @@
 'use client';
 
 import type { UserDto } from '@shelf/shared';
-import { Library, LogOut } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Library, LogOut, Menu, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { cn } from './cn';
 
 export type WorkspaceLayoutProps = {
   user: UserDto;
@@ -12,13 +13,43 @@ export type WorkspaceLayoutProps = {
   children: ReactNode;
 };
 
+/**
+ * Dark sidebar + content. Below 768 px (a phone, a narrow browser window) the sidebar slides in over the
+ * content from a toggle in the toolbar; at 768 px and wider — the desktop window is never narrower — the
+ * layout is the same as before the toggle existed.
+ */
 export function WorkspaceLayout({ user, onLogout, sidebar, toolbar, children }: WorkspaceLayoutProps) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="grid h-full grid-cols-[272px_1fr]">
-      <aside className="flex min-h-0 flex-col bg-ink text-paper">
+    <div className="h-full md:grid md:grid-cols-[272px_1fr]">
+      {open ? (
+        <div
+          data-testid="sidebar-backdrop"
+          aria-hidden="true"
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-30 bg-ink/45 md:hidden"
+        />
+      ) : null}
+      <aside
+        data-testid="sidebar"
+        data-open={open}
+        className={cn(
+          'flex min-h-0 flex-col bg-ink text-paper',
+          'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-[272px] max-md:max-w-[85vw] max-md:shadow-2xl max-md:transition-[transform,visibility]',
+          !open && 'max-md:invisible max-md:-translate-x-full',
+        )}
+      >
         <div className="flex items-center gap-2 px-5 py-5">
           <Library size={22} className="text-brass" />
           <span className="text-lg font-semibold tracking-tight">Shelf</span>
+          <button
+            type="button"
+            aria-label="Закрити меню"
+            onClick={() => setOpen(false)}
+            className="ml-auto rounded p-1 text-paper/70 hover:bg-white/5 md:hidden"
+          >
+            <X size={18} />
+          </button>
         </div>
         <div className="px-5 pb-4">
           <div className="text-xs uppercase tracking-wider text-paper/50">Простір</div>
@@ -39,8 +70,20 @@ export function WorkspaceLayout({ user, onLogout, sidebar, toolbar, children }: 
           </button>
         </div>
       </aside>
-      <main className="flex min-h-0 min-w-0 flex-col">
-        <div className="flex flex-wrap items-center gap-3 border-b border-line bg-white px-6 py-3">{toolbar}</div>
+      <main className="flex min-h-0 min-w-0 flex-col max-md:h-full">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line bg-white px-6 py-3 max-md:px-4">
+          <button
+            type="button"
+            data-testid="sidebar-toggle"
+            aria-label="Меню"
+            aria-expanded={open}
+            onClick={() => setOpen(true)}
+            className="rounded-md p-1.5 text-ink hover:bg-paper-2 md:hidden"
+          >
+            <Menu size={20} />
+          </button>
+          {toolbar}
+        </div>
         <div className="min-h-0 flex-1 overflow-auto">{children}</div>
       </main>
     </div>
