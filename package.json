@@ -7,6 +7,7 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r run typecheck",
+    "dev:web": "pnpm -F @shelf/web dev",
     "stack:up": "docker compose --env-file docker/.env -f docker/compose.yml up -d --build --wait",
     "seed": "node tools/seed-demo.mjs",
     "smoke": "bash tools/api-smoke.sh",
