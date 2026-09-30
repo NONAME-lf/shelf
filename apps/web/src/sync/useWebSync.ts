@@ -4,6 +4,7 @@ import { accountKey, SyncStatus, type Side, type SyncApi, type SyncItem, type Sy
 import { messageOf, type SyncBusy } from '@shelf/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_URL } from '../lib/config';
+import { explainBrowserError } from './browserErrors';
 import { directoryPicker } from './fileSystemAccess';
 import { FolderBindingStore } from './folderBindingStore';
 import { shelfDb } from './idb';
@@ -98,14 +99,18 @@ export function useWebSync({ api, userId, onSynced }: Options) {
   const sync = useCallback(async () => {
     if (!service) return;
     setError(null);
+    // busy from the first click: the buttons stay disabled while the picker or a permission prompt is open
+    setBusy('scanning');
     try {
       await signedIn.current;
       if (!service.state().folderName) {
         const next = await service.chooseFolder();
         setState(next);
-        if (!next.folderName) return;
+        if (!next.folderName) {
+          setBusy('idle');
+          return;
+        }
       }
-      setBusy('scanning');
       const found = (await service.scan()).filter((item) => item.status === SyncStatus.CONFLICT);
       if (found.length > 0) {
         setConflicts(found);
@@ -113,7 +118,7 @@ export function useWebSync({ api, userId, onSynced }: Options) {
         return;
       }
     } catch (caught) {
-      setError(messageOf(caught));
+      setError(messageOf(explainBrowserError(caught, service.state().folderName ?? 'обрану')));
       setBusy('idle');
       return;
     }
@@ -137,18 +142,25 @@ export function useWebSync({ api, userId, onSynced }: Options) {
   const chooseFolder = useCallback(async () => {
     if (!service) return;
     setError(null);
+    setBusy('scanning');
     try {
       await signedIn.current;
-      if (conflicts) cancel();
-      setState(await service.chooseFolder());
+      const before = service.state().folderName;
+      const next = await service.chooseFolder();
+      // the service drops its plan on a new choice; close the dialog with it (a dismissed picker changes nothing)
+      if (next.folderName !== before) setConflicts(null);
+      setState(next);
     } catch (caught) {
-      setError(messageOf(caught));
+      setError(messageOf(explainBrowserError(caught, service.state().folderName ?? 'обрану')));
+    } finally {
+      setBusy('idle');
     }
-  }, [service, conflicts, cancel]);
+  }, [service]);
 
   const setWatch = useCallback(
     async (enabled: boolean) => {
       if (!service) return;
+      setError(null);
       try {
         setState(await service.setWatch(enabled));
       } catch (caught) {
