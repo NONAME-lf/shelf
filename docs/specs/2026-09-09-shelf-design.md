@@ -384,7 +384,8 @@ Tailwind зі спільним пресетом. Жодних `next/*` імпо�
   натискання «Синхронізувати» (Chrome забуває його після перезавантаження сторінки). В IndexedDB —
   `IndexedDbSnapshotStore` (знімок для кожної прив'язки) і `FolderBindingStore` (handle папки і
   перемикач відстеження для кожного облікового запису). Службові файли Chrome `*.crswap` не
-  синхронізуються. Помилки вибору папки і дозволу (`DOMException`) перекладаються українською
+  синхронізуються. Збій вибору папки має власне повідомлення (`explainPickerError`), а помилки
+  браузера (`DOMException` File System Access і IndexedDB) перекладаються українською
   (`explainBrowserError`); поки відкрито вікно вибору папки чи запит дозволу, кнопки блоку
   синхронізації вимкнені.
 - Автоматичне відстеження — `WebSyncService` з хуком `useWebSync`: браузер не повідомляє про зміни в
@@ -413,11 +414,12 @@ Jest у `apps/api`: `AuthService`, `FilesService` (оновлення версі
 файловій системі (тимчасова папка) з in-memory API; `SyncEngine` з in-memory `LocalFolder` — у
 `@shelf/shared`. Vitest у `apps/web` (середовище node, без браузера): сесія, `BrowserLocalFolder`
 на in-memory handle-ах із поведінкою Chromium (скачаний файл не вважається зміненим, `*.crswap`
-пропускаються, невдале скачування нового файлу не залишає порожнього файлу), `fileSystemAccess.test.ts`
-(визначення підтримки API і допоміжна функція дозволу), `IndexedDbSnapshotStore` і `FolderBindingStore` на `fake-indexeddb`, `WebSyncService`
-з in-memory API і керованим таймером. Наскрізні перевірки UI обох клієнтів — Playwright
-(`pnpm -F @shelf/desktop smoke`, `pnpm -F @shelf/web smoke`; у вебі папка синхронізації — каталог
-Origin Private File System).
+пропускаються, невдале скачування нового файлу не залишає порожнього файлу),
+`fileSystemAccess.test.ts` (визначення підтримки API і допоміжна функція дозволу),
+`browserErrors.test.ts` (переклад помилок браузера), `IndexedDbSnapshotStore` і `FolderBindingStore`
+на `fake-indexeddb`, `WebSyncService` з in-memory API і керованим таймером. Наскрізні перевірки UI
+обох клієнтів — Playwright (`pnpm -F @shelf/desktop smoke`, `pnpm -F @shelf/web smoke`; у вебі
+папка синхронізації — каталог Origin Private File System).
 
 ## 9. Розгортання
 
