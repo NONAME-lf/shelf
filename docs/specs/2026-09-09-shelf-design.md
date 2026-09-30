@@ -83,7 +83,7 @@
 | UC11 | Download file(s) | `extend` UC3; UC11a «Drag out of the window» (desktop only) | files |
 | UC12 | Delete file(s) | `extend` UC3 | files |
 | UC13 | Bind / change local folder | `extend` UC3 | sync |
-| UC14 | Synchronize with the local folder | `extend` UC3; передумова — прив'язана папка; UC14a «Automatic tracking of folder changes» (desktop only), UC14b «Resolve version conflicts» (за замовчуванням перемагає новіша) | sync |
+| UC14 | Synchronize with the local folder | `extend` UC3; передумова — прив'язана папка; UC14a «Automatic tracking of folder changes» (desktop — folder watcher, web — polling), UC14b «Resolve version conflicts» (за замовчуванням перемагає новіша) | sync |
 | UC15 | Log out from the system | User → UC15 | access |
 
 Прецедент варіанта для VOPC і діаграми комунікації — **UC5 + UC6** («Sort and filter the
@@ -172,10 +172,12 @@ getVisibleFiles() = filterByType(sortByName(files, direction), filter)
 
 ### 5.1. Прив'язка папки
 
-Папка прив'язується один раз і запам'ятовується (десктоп — JSON у `userData`; веб — handle у
-IndexedDB). Кнопка «Synchronize» працює з прив'язаною папкою; якщо папки немає — відкриває
-діалог вибору. Поруч видно шлях і кнопку «Change». Автоматичне відстеження змін (`chokidar`) —
-окремий перемикач, доступний лише в десктопі після прив'язки.
+Папка прив'язується один раз і запам'ятовується окремо для кожного облікового запису (десктоп —
+JSON у `userData`; веб — handle у IndexedDB). Кнопка «Synchronize» працює з прив'язаною папкою;
+якщо папки немає — відкриває діалог вибору. Поруч видно шлях (у вебі — лише назву папки) і кнопку
+«Change». Автоматичне відстеження змін — окремий перемикач, доступний після прив'язки: у десктопі —
+`chokidar`, у вебі — опитування списку файлів папки кожні 5 с (§7.5). На діаграмі прецедентів етапу 1
+UC14a позначено «desktop only»; веб-клієнт реалізує його опитуванням.
 
 ### 5.2. Обчислення статусу
 
@@ -211,15 +213,18 @@ snapshot.remoteModifiedAt` або `remoteFile.checksum ≠ snapshot.checksum` (�
 `modifiedAt` (за рівного часу — `REMOTE`) — це вибір за замовчуванням. Після `scan()` клієнт
 показує `ConflictDialog` зі списком усіх конфліктних елементів (`conflicts()`); для кожного
 користувач обирає `LOCAL` або `REMOTE` (попередньо позначено новіший). `resolve(name, keep)`
-записує вибір, `synchronize()` виконує план. Коли синхронізацію запускає спостерігач папки
-(десктоп, автоматичний режим), діалог не показується — застосовується вибір за замовчуванням.
+записує вибір, `synchronize()` виконує план. Коли синхронізацію запускає автоматичне
+відстеження (спостерігач папки в десктопі, опитування у вебі), діалог не показується — застосовується
+вибір за замовчуванням.
 
 ### 5.4. Виконання плану
 
 Для кожного `SyncItem`: `LOCAL_ONLY`, `LOCAL_NEWER`, `CONFLICT/LOCAL` → upload;
 `REMOTE_ONLY`, `REMOTE_NEWER`, `CONFLICT/REMOTE` → download; `IN_SYNC` → skip. Після успішного
 переносу оновлюється `SnapshotEntry` (разом з `remoteId`); після download локальному файлу
-виставляється `modifiedAt` віддаленої версії (десктоп) або лише оновлюється знімок (веб).
+виставляється `modifiedAt` віддаленої версії (десктоп). Браузер не може задати час зміни: скачаний
+файл отримує поточний час, і знімок записує саме його — `LocalFolder.write` повертає файл таким, яким
+він є після запису, тож наступна синхронізація не вважає його зміненим локально.
 Невдалий перенос залишає файл у попередньому стані й додає запис до `SyncReport.errors`.
 Наприкінці знімок зберігається, а `SyncReport` показується користувачу.
 
@@ -335,11 +340,12 @@ shelf/
 ### 7.3. `@shelf/ui`
 
 Презентаційні компоненти, спільні для десктопа і веба: `AuthForm`, `WorkspaceLayout`
-(бічна панель + вміст), `FileTableView`, `SortHeaderControl`, `TypeFilterControl`,
-`ColumnPicker`, `PreviewDialog`, `UploadDropzone`, `SyncPanel`, `ConflictDialog`,
-`SyncReportView`. Також: `Banner`, `Button`, `Modal`, `UploadButton`, `SidebarSection` і хук
-`useFileListController` — керівний клас `FileListController` з VOPC. Стилі — Tailwind зі
-спільним пресетом. Жодних `next/*` імпортів.
+(бічна панель + вміст; вужче 768 px панель відкривається кнопкою меню поверх вмісту),
+`FileTableView`, `SortHeaderControl`, `TypeFilterControl`, `ColumnPicker`, `PreviewDialog`,
+`UploadDropzone`, `SyncPanel`, `ConflictDialog`, `SyncReportView`. Також: `Banner`, `Button`,
+`Modal`, `UploadButton`, `SidebarSection`, хук `useFileListController` — керівний клас
+`FileListController` з VOPC — і `describeUpload` (текст повідомлення після завантаження). Стилі —
+Tailwind зі спільним пресетом. Жодних `next/*` імпортів.
 
 **Вигляд (принцип, деталі на етапі 2):** ліва бічна панель з назвою простору, користувачем,
 блоком синхронізації (папка, перемикач відстеження, кнопка) і перемикачами стовпців; основна
@@ -362,12 +368,35 @@ shelf/
 
 ### 7.5. `apps/web`
 
-- Маршрути: `/login`, `/register`, `/workspace`.
-- `BrowserLocalFolder` на File System Access API (`showDirectoryPicker`), handle і знімок —
-  в IndexedDB (`IndexedDbSnapshotStore`). У браузерах без API кнопка синхронізації вимкнена з
-  поясненням.
-- Drag-and-drop завантаження через `UploadDropzone`; скачування — звичайне посилання.
-- `transpilePackages: ['@shelf/shared', '@shelf/ui']`.
+- Next.js 16 (App Router); усі сторінки — клієнтські компоненти. Маршрути: `/login`, `/register`,
+  `/workspace`; `/` веде на `/workspace` або `/login` залежно від сесії. Сесія (JWT і користувач) —
+  у `localStorage`, як у десктопі; збережений токен перевіряється через `GET /api/auth/me`, і
+  відповідь 401 (зокрема прострочений токен посеред роботи) повертає на `/login`. Адреса API
+  фіксована для збірки (`NEXT_PUBLIC_API_URL`, за замовчуванням `http://localhost:4000`), тому поля
+  «Адреса сервера» на екрані входу немає.
+- Екрани `LoginScreen` і `WorkspaceScreen` зібрано з `@shelf/ui`: вигляд і `data-testid` ті самі, що
+  в десктопі.
+- Drag-and-drop завантаження через `UploadDropzone`, файли понад 50 МБ відсіюються до запиту.
+  Скачування: байти отримуються `FileApiClient.download` з токеном і зберігаються через тимчасовий
+  object URL і `<a download>` — звичайне посилання не може передати заголовок `Authorization`.
+- Синхронізація (Chrome, Edge): `BrowserLocalFolder` на File System Access API
+  (`showDirectoryPicker`); дозвіл на папку перевіряється перед кожною дією, а запитується лише після
+  натискання «Синхронізувати» (Chrome забуває його після перезавантаження сторінки). В IndexedDB —
+  `IndexedDbSnapshotStore` (знімок для кожної прив'язки) і `FolderBindingStore` (handle папки і
+  перемикач відстеження для кожного облікового запису). Службові файли Chrome `*.crswap` не
+  синхронізуються. Помилки вибору папки і дозволу (`DOMException`) перекладаються українською
+  (`explainBrowserError`); поки відкрито вікно вибору папки чи запит дозволу, кнопки блоку
+  синхронізації вимкнені.
+- Автоматичне відстеження — `WebSyncService` з хуком `useWebSync`: браузер не повідомляє про зміни в
+  папці, тож поки перемикач увімкнено і вкладка видима, список файлів (назви, розміри, час зміни)
+  перечитується кожні 5 с, і синхронізація запускається лише тоді, коли він змінився. Запобіжники —
+  як у десктопному `SyncService`: один запуск одночасно, відкритий `ConflictDialog` притримує
+  автоматичні запуски, ручна синхронізація спершу запитує дозвіл на папку, а потім чекає на автоматичну, результат запуску попереднього
+  облікового запису чи папки відкидається.
+- У браузерах без File System Access API (Firefox, Safari) блок синхронізації показує пояснення
+  замість кнопок; решта функцій працює.
+- `transpilePackages: ['@shelf/shared', '@shelf/ui']`. Розгортання — Vercel: корінь проєкту
+  `apps/web`, команди встановлення і збірки — `apps/web/vercel.json`.
 
 ## 8. Тестування
 
@@ -382,7 +411,12 @@ Jest у `apps/api`: `AuthService`, `FilesService` (оновлення версі
 `modifiedAt`, `checksum`), `StorageService` з моком S3. Vitest у `apps/desktop`: `SettingsStore`,
 `NodeLocalFolder`, `JsonSnapshotStore`, `FolderWatcher`, `SyncService` і `SyncEngine` на справжній
 файловій системі (тимчасова папка) з in-memory API; `SyncEngine` з in-memory `LocalFolder` — у
-`@shelf/shared`.
+`@shelf/shared`. Vitest у `apps/web` (середовище node, без браузера): сесія, `BrowserLocalFolder`
+на in-memory handle-ах із поведінкою Chromium (скачаний файл не вважається зміненим, `*.crswap`
+пропускаються), `IndexedDbSnapshotStore` і `FolderBindingStore` на `fake-indexeddb`, `WebSyncService`
+з in-memory API і керованим таймером. Наскрізні перевірки UI обох клієнтів — Playwright
+(`pnpm -F @shelf/desktop smoke`, `pnpm -F @shelf/web smoke`; у вебі папка синхронізації — каталог
+Origin Private File System).
 
 ## 9. Розгортання
 

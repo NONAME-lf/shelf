@@ -4,6 +4,7 @@
 
 - `apps/api` — REST-сервер (NestJS, Prisma, PostgreSQL, S3-сховище)
 - `apps/desktop` — десктоп-клієнт (Electron, React, Vite)
+- `apps/web` — веб-клієнт (Next.js, React)
 - `packages/shared` — спільна логіка клієнтів: операції варіанта, перегляд, синхронізація, REST-клієнт
 - `packages/ui` — спільні React-компоненти клієнтів
 - `docs/specs/` — специфікація дизайну (єдине джерело імен)
@@ -36,5 +37,24 @@ pnpm -F @shelf/desktop smoke      # наскрізна перевірка UI (п
 ```
 
 На екрані входу можна змінити адресу сервера. Звіт етапу 2: `docs/reports/stage2-desktop.pdf`.
+
+## Веб-клієнт
+
+Спершу `pnpm install` і `pnpm build` (див. вище); сервер має працювати (`pnpm stack:up`).
+
+```bash
+pnpm dev:web                                         # http://localhost:3000 у режимі розробки
+pnpm -F @shelf/web build && pnpm -F @shelf/web start # продакшн-збірка і запуск на :3000
+pnpm -F @shelf/web test                              # unit-тести (Vitest, без браузера)
+pnpm -F @shelf/web exec playwright install chromium  # один раз перед наскрізною перевіркою
+pnpm -F @shelf/web smoke                             # наскрізна перевірка UI (потрібен pnpm stack:up)
+```
+
+Адреса API задається під час збірки змінною `NEXT_PUBLIC_API_URL` (за замовчуванням `http://localhost:4000`),
+тому на екрані входу поля адреси немає. Синхронізація з локальною папкою працює в Chrome і Edge (File System
+Access API); у Firefox і Safari доступні решта функцій. Автоматичне відстеження у вебі — опитування папки кожні
+5 с, поки вкладка відкрита. Якщо порт 3000 зайнятий: `SHELF_WEB_PORT=3100 pnpm -F @shelf/web smoke`.
+
+Розгортання на Vercel: корінь проєкту `apps/web`, команди встановлення і збірки — у `apps/web/vercel.json`.
 
 Збірка звіту: `tools/build-report.sh docs/reports/<звіт>.md` (потрібні pandoc і xelatex).
