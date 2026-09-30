@@ -17,7 +17,7 @@ const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 390, height: 844 };
 // Crops in CSS pixels (device scale 2): the forms without the empty background, the Swagger column.
 const FORM_CLIP = { x: 390, y: 100, width: 500, height: 588 };
-const SWAGGER_CLIP = { x: 265, y: 0, width: 750, height: 712 };
+const SWAGGER_CLIP = { x: 265, y: 0, width: 750, height: 580 }; // ends right after the endpoint list, before Schemas
 
 await mkdir(OUT, { recursive: true });
 const token = (await api('/auth/login', { method: 'POST', json: { email: EMAIL, password: PASSWORD } })).accessToken;
