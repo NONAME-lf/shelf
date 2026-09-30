@@ -263,10 +263,10 @@ describe('WebSyncService', () => {
     const { folder, apiOf, events, timers, artemWithFolder } = setup();
     await artemWithFolder(true);
     folder.setFile('offline.txt', 'x');
-    apiOf(ARTEM).failWith = new ApiError(0, 'Сервер недоступний: fetch failed');
+    apiOf(ARTEM).failWith = new ApiError(0, "Сервер недоступний — перевірте з'єднання");
     await timers[0].tick();
     await timers[0].tick();
-    expect(events.map((event) => event.error)).toEqual(['Сервер недоступний: fetch failed']);
+    expect(events.map((event) => event.error)).toEqual(["Сервер недоступний — перевірте з'єднання"]);
 
     apiOf(ARTEM).failWith = null;
     await timers[0].tick();
@@ -348,7 +348,7 @@ describe('WebSyncService', () => {
     await signIn(IRYNA);
     pick(new FakeDirectoryHandle('Iryna', clock));
     await service.chooseFolder();
-    apiOf(ARTEM).failWith = new ApiError(0, 'Сервер недоступний: fetch failed');
+    apiOf(ARTEM).failWith = new ApiError(0, "Сервер недоступний — перевірте з'єднання");
     release();
     await running;
 

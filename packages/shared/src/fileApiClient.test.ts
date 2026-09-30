@@ -121,6 +121,6 @@ describe('FileApiClient', () => {
       throw new TypeError('fetch failed');
     });
     const api = new FileApiClient({ baseUrl: 'http://h', token: 'jwt', fetch: fn });
-    await expect(api.listFiles()).rejects.toMatchObject({ status: 0, message: 'Сервер недоступний: fetch failed' });
+    await expect(api.listFiles()).rejects.toMatchObject({ status: 0, message: "Сервер недоступний — перевірте з'єднання" });
   });
 });

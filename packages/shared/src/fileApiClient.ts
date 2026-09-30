@@ -95,8 +95,9 @@ export class FileApiClient {
     let response: Response;
     try {
       response = await this.fetchFn(`${this.baseUrl}${path}`, { method, headers, body });
-    } catch (error) {
-      throw new ApiError(0, `Сервер недоступний: ${error instanceof Error ? error.message : String(error)}`);
+    } catch {
+      // the browser's own text ("Failed to fetch") is English and says nothing more than this
+      throw new ApiError(0, 'Сервер недоступний — перевірте з\'єднання');
     }
     if (response.ok) return response;
     if (response.status === 401 && this.token) this.onUnauthorized?.();

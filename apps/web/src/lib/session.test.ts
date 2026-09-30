@@ -55,7 +55,7 @@ describe('verifySession', () => {
       throw new ApiError(401, 'Сесія недійсна або завершилася');
     };
     const offline = async () => {
-      throw new ApiError(0, 'Сервер недоступний: fetch failed');
+      throw new ApiError(0, "Сервер недоступний — перевірте з'єднання");
     };
     expect(await verifySession(SESSION, rejected)).toBeNull();
     expect(await verifySession(SESSION, offline)).toEqual(SESSION);
