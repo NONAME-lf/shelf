@@ -72,4 +72,10 @@ Access API); у Firefox і Safari доступні решта функцій. А
 (записані командою `SHELF_API=https://shelf-api-l989.onrender.com pnpm seed`). Безкоштовний сервер засинає після
 15 хвилин без запитів, тому перший запит може тривати до хвилини. Звіт етапу 3: `docs/reports/stage3-web.pdf`.
 
+## Звіти
+
+Звіт етапу 4 порівнює десктопний і веб-клієнти: `docs/reports/stage4-comparison.pdf`. Виміряні в ньому
+частку спільного коду, розміри, час запуску і першої синхронізації повторює `node tools/compare-clients.mjs`
+з командами `loc`, `artefacts`, `web-load`, `startup` і `sync` (опис — на початку скрипта).
+
 Збірка звіту: `tools/build-report.sh docs/reports/<звіт>.md` (потрібні pandoc і xelatex).
