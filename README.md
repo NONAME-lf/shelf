@@ -59,4 +59,17 @@ Access API); у Firefox і Safari доступні решта функцій. А
 
 Розгортання на Vercel: корінь проєкту `apps/web`, команди встановлення і збірки — у `apps/web/vercel.json`.
 
+## Публікація
+
+- Сайт: https://shelf-opal-two.vercel.app
+- REST API: https://shelf-api-l989.onrender.com, документація — https://shelf-api-l989.onrender.com/api/docs
+- Репозиторій: https://github.com/NONAME-lf/shelf
+
+Веб-клієнт — Vercel (Hobby); API — Render, безкоштовний Docker web service з `render.yaml` (Frankfurt);
+база — Neon PostgreSQL (Frankfurt, пряме з'єднання); вміст файлів — Supabase Storage через S3-сумісний ендпоінт.
+Секрети задано в панелях сервісів, у репозиторії їх немає. Демонстраційні облікові записи ті самі, що й
+локально: `artem@shelf.dev`, `iryna@shelf.dev`, `maksym@shelf.dev`, пароль `shelf-demo-2026`
+(записані командою `SHELF_API=https://shelf-api-l989.onrender.com pnpm seed`). Безкоштовний сервер засинає після
+15 хвилин без запитів, тому перший запит може тривати до хвилини. Звіт етапу 3: `docs/reports/stage3-web.pdf`.
+
 Збірка звіту: `tools/build-report.sh docs/reports/<звіт>.md` (потрібні pandoc і xelatex).
