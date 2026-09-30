@@ -16,10 +16,12 @@ const row = (page, name) => page.locator(`[data-testid="file-row"][data-name="${
 const reportLine = (page, text) => page.getByTestId('sync-report').getByText(text, { exact: true });
 
 const web = await startWeb();
-const { context, page, profile } = await launchBrowser();
 const pageErrors = [];
-page.on('pageerror', (error) => pageErrors.push(error.message));
+let main;
 try {
+  main = await launchBrowser();
+  const { page } = main;
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   // A stored token the server rejects (expired, reset database) leads to the login screen.
   await page.goto('/login');
   await page.evaluate((serverUrl) => {
@@ -153,7 +155,11 @@ try {
     await page.getByTestId('conflict-row').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-name'))),
     ['smoke-local.txt'],
   );
+  // the local edit is the newer one, so the dialog preselects it; choosing the server side changes that
+  await page.waitForFunction(() => document.querySelector('[data-testid="conflict-LOCAL"]').checked === true);
+  assert.equal(await page.getByTestId('conflict-REMOTE').isChecked(), false);
   await page.getByTestId('conflict-REMOTE').check();
+  await page.waitForFunction(() => document.querySelector('[data-testid="conflict-REMOTE"]').checked === true);
   await page.screenshot({ path: join(shots, '3-conflict.png') });
   await page.getByTestId('conflict-apply').click();
   await page.getByTestId('conflict-dialog').waitFor({ state: 'hidden' });
@@ -232,22 +238,31 @@ try {
   console.log('ok  the bound folder belongs to the account');
 
   // Without the File System Access API (Firefox, Safari) the sync block explains itself instead.
-  const plain = await launchBrowser({ folderPicker: 'none' });
+  let plain;
   try {
+    plain = await launchBrowser({ folderPicker: 'none' });
+    plain.page.on('pageerror', (error) => pageErrors.push(error.message));
     await login(plain.page, email);
     await plain.page.getByTestId('sync-unsupported').waitFor();
     assert.match(await plain.page.getByTestId('sync-unsupported').innerText(), /Chrome і Edge/);
     assert.equal(await plain.page.getByTestId('sync-run').count(), 0);
     console.log('ok  without the File System Access API the sync block is off with an explanation');
   } finally {
-    await plain.context.close();
-    await removeProfile(plain.profile);
+    if (plain) {
+      await plain.context.close();
+      await removeProfile(plain.profile);
+    }
   }
 
   assert.deepEqual(pageErrors, []);
   console.log(`web-smoke: OK (screenshots in ${shots})`);
 } finally {
-  await context.close();
-  await removeProfile(profile);
-  await web.stop();
+  try {
+    if (main) {
+      await main.context.close();
+      await removeProfile(main.profile);
+    }
+  } finally {
+    await web.stop();
+  }
 }

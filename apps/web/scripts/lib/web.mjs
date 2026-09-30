@@ -52,7 +52,9 @@ export async function startWeb() {
   return {
     stop: async () => {
       child.kill('SIGTERM');
+      const killer = setTimeout(() => child.kill('SIGKILL'), 5_000);
       await exited;
+      clearTimeout(killer);
     },
   };
 }
@@ -66,11 +68,16 @@ export async function startWeb() {
  */
 export async function launchBrowser({ folderPicker = 'opfs' } = {}) {
   const profile = await mkdtemp(join(tmpdir(), 'shelf-web-profile-'));
-  const context = await chromium.launchPersistentContext(profile, {
-    baseURL: WEB,
-    viewport: { width: 1280, height: 820 },
-    acceptDownloads: true,
-  });
+  const context = await chromium
+    .launchPersistentContext(profile, {
+      baseURL: WEB,
+      viewport: { width: 1280, height: 820 },
+      acceptDownloads: true,
+    })
+    .catch(async (error) => {
+      await removeProfile(profile);
+      throw error;
+    });
   if (folderPicker === 'opfs') {
     await context.addInitScript((dir) => {
       window.showDirectoryPicker = async () => (await navigator.storage.getDirectory()).getDirectoryHandle(dir, { create: true });
