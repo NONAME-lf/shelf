@@ -10,7 +10,7 @@ import {
   type SyncReport,
 } from '@shelf/shared';
 import { BrowserLocalFolder } from './browserLocalFolder';
-import { isAbortError } from './browserErrors';
+import { explainPickerError, isAbortError } from './browserErrors';
 import { hasFolderPermission } from './fileSystemAccess';
 import type { FolderBinding, FolderBindings } from './folderBindingStore';
 
@@ -118,7 +118,7 @@ export class WebSyncService {
       handle = await this.deps.pickFolder();
     } catch (error) {
       if (isAbortError(error)) return this.state();
-      throw error;
+      throw explainPickerError();
     }
     // signed out while the picker was open: the choice belongs to nobody now
     if (this.session?.account !== account) return this.state();

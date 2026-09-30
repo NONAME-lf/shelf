@@ -127,6 +127,14 @@ describe('WebSyncService', () => {
     expect(await bindings.get(ARTEM)).toMatchObject({ account: ARTEM, id: 'binding-1', watch: false });
   });
 
+  it('a picker failure other than closing it gets its own Ukrainian message and binds nothing', async () => {
+    const { bindings, service, signIn, pick } = setup();
+    await signIn(ARTEM);
+    pick(new DOMException('Must be handling a user gesture', 'SecurityError'));
+    await expect(service.chooseFolder()).rejects.toThrow('Не вдалося відкрити вибір папки');
+    expect(await bindings.get(ARTEM)).toBeNull();
+  });
+
   it('keeps the snapshot when the same folder is chosen again and starts a new one for another folder', async () => {
     const { clock, folder, bindings, snapshots, service, pick, artemWithFolder } = setup();
     folder.setFile('a.txt', 'x');

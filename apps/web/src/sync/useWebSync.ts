@@ -14,6 +14,12 @@ import { WebSyncService, type AutoSyncEvent, type WebSyncState } from './webSync
 export const UNSUPPORTED_REASON =
   'Синхронізація з локальною папкою працює в Chrome і Edge (потрібен File System Access API). У цьому браузері доступні перегляд, завантаження, скачування і видалення файлів.';
 
+/**
+ * Errors of the service and of IndexedDB reach the window in Ukrainian. Errors of the folder itself were
+ * translated where they arose (BrowserLocalFolder, the permission helper), so what is left has no folder.
+ */
+const explain = (caught: unknown): string => messageOf(explainBrowserError(caught, null));
+
 type Options = { api: SyncApi; userId: string; onSynced: () => Promise<void> | void };
 
 /** UC13 + UC14 in the browser — the web counterpart of the desktop's useDesktopSync. */
@@ -66,7 +72,7 @@ export function useWebSync({ api, userId, onSynced }: Options) {
         if (active) setState(next);
       },
       (caught: unknown) => {
-        if (active) setError(messageOf(caught));
+        if (active) setError(explain(caught));
       },
     );
     return () => {
@@ -87,7 +93,7 @@ export function useWebSync({ api, userId, onSynced }: Options) {
         setLastSyncedAt(result.syncedAt);
         await synced.current();
       } catch (caught) {
-        setError(messageOf(caught));
+        setError(explain(caught));
       } finally {
         setBusy('idle');
         setProgress(null);
@@ -118,7 +124,7 @@ export function useWebSync({ api, userId, onSynced }: Options) {
         return;
       }
     } catch (caught) {
-      setError(messageOf(explainBrowserError(caught, service.state().folderName ?? 'обрану')));
+      setError(explain(caught));
       setBusy('idle');
       return;
     }
@@ -145,13 +151,12 @@ export function useWebSync({ api, userId, onSynced }: Options) {
     setBusy('scanning');
     try {
       await signedIn.current;
-      const before = service.state().folderName;
       const next = await service.chooseFolder();
-      // the service drops its plan on a new choice; close the dialog with it (a dismissed picker changes nothing)
-      if (next.folderName !== before) setConflicts(null);
+      // the dialog is modal, so a dismissed picker cannot coincide with an open one: clearing is always right
+      setConflicts(null);
       setState(next);
     } catch (caught) {
-      setError(messageOf(explainBrowserError(caught, service.state().folderName ?? 'обрану')));
+      setError(explain(caught));
     } finally {
       setBusy('idle');
     }
@@ -164,7 +169,7 @@ export function useWebSync({ api, userId, onSynced }: Options) {
       try {
         setState(await service.setWatch(enabled));
       } catch (caught) {
-        setError(messageOf(caught));
+        setError(explain(caught));
       }
     },
     [service],
