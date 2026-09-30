@@ -10,7 +10,8 @@
 // Before `artefacts`, `startup` and `sync`: pnpm -F @shelf/shared build && pnpm -F @shelf/desktop dist:mac;
 // before `sync` also pnpm -F @shelf/web build (with the local API address) and a running, seeded stack.
 // Environment: RUNS (3); SHELF_SITE, SHELF_SITE_API, SHELF_SITE_EMAIL, SHELF_SITE_PASSWORD for the published
-// system (only a login and reading); SHELF_API and SHELF_WEB_PORT as in the UI scripts of both clients.
+// system (only a login and reading); SHELF_API and SHELF_WEB_PORT as in the UI scripts of both clients. `sync` writes
+// data (a throwaway account with the demo files) and therefore refuses any API but localhost / 127.0.0.1.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
@@ -274,9 +275,13 @@ async function startup() {
   for (let run = 0; run < RUNS; run += 1) {
     const started = performance.now();
     const { app, userData } = await launchApp({ executablePath }); // resolves when the login form is visible
-    desktop.push(performance.now() - started);
-    await closeApp(app);
-    await rm(userData, { recursive: true, force: true });
+    const took = performance.now() - started;
+    try {
+      await closeApp(app);
+    } finally {
+      await rm(userData, { recursive: true, force: true });
+    }
+    desktop.push(took);
   }
   series('desktop, packaged Shelf.app: launch → login form visible', desktop);
 
@@ -306,14 +311,21 @@ async function startup() {
 
 // -------------------------------------------------------------------------------------------- sync
 
+/** `sync` registers an account and uploads files: it may only talk to the local stack. */
+const LOCAL_API = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/;
+
 async function sync() {
   const desktopLib = await import(DESKTOP_LIB);
   const webLib = await import(WEB_LIB);
+  for (const server of [desktopLib.SERVER, webLib.SERVER]) assert.match(server, LOCAL_API, 'sync writes data: local stack only');
+  const healthy = await fetch(`${desktopLib.SERVER}/api/health`).then((response) => response.ok, () => false);
+  if (!healthy) throw new Error(`the local API ${desktopLib.SERVER} does not answer /api/health — start it with pnpm stack:up`);
   const names = (await readdir(DEMO_DIR)).filter((name) => !name.startsWith('.')).sort();
   assert.equal(names.length, 10, `expected 10 demo files, found ${names.length}`);
   const bytes = names.reduce((sum, name) => sum + lstatSync(join(DEMO_DIR, name)).size, 0);
 
-  // A throwaway account on the local stack keeps the demo users untouched.
+  // A throwaway account keeps the demo users untouched. It stays on the local stack afterwards: nothing deletes
+  // accounts through the API, only pnpm stack:reset (which wipes all data) removes it.
   const email = `compare-${Date.now()}@shelf.dev`;
   const token = await desktopLib.registerUser(email, 'Порівняння');
   for (const name of names) await desktopLib.uploadDemoFile(token, name);
